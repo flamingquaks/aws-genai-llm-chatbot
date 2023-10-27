@@ -121,13 +121,13 @@ async function processCreateOptions(options: any): Promise<void> {
       name: "bedrockRegion",
       message: "Region where Bedrock is available",
       choices: [
-        SupportedRegion.US_EAST_1,
+        // SupportedRegion.US_EAST_1,
         SupportedRegion.US_WEST_2,
-        SupportedRegion.EU_CENTRAL_1,
-        SupportedRegion.AP_SOUTHEAST_1,
-        SupportedRegion.AP_NORTHEAST_1,
+        // SupportedRegion.EU_CENTRAL_1,
+        // SupportedRegion.AP_SOUTHEAST_1,
+        // SupportedRegion.AP_NORTHEAST_1,
       ],
-      initial: options.bedrockRegion ?? "us-east-1",
+      initial: options.bedrockRegion ?? "us-west-2",
       skip() {
         return !(this as any).state.answers.bedrockEnable;
       },
@@ -135,11 +135,12 @@ async function processCreateOptions(options: any): Promise<void> {
     {
       type: "input",
       name: "bedrockEndpoint",
-      message: "Bedrock endpoint - leave as is for standard endpoint",
+      message: "Bedrock endpoint - leave as is for internal developer endpoint",
       initial() {
-        return `https://bedrock-runtime.${
-          (this as any).state.answers.bedrockRegion
-        }.amazonaws.com`;
+        return `https://prod.us-west-2.dataplane.bedrock.aws.dev`;
+        // return `https://bedrock-runtime.${
+        //   (this as any).state.answers.bedrockRegion
+        // }.amazonaws.com`;
       },
     },
     {

@@ -5,7 +5,8 @@ import { AwsGenAILLMChatbotStack } from "../lib/aws-genai-llm-chatbot-stack";
 import { getConfig } from "./config";
 
 const app = new cdk.App();
-
+cdk.Tags.of(app).add("owner", "gen-ai-chatbot");
+cdk.Tags.of(app).add("AppManagerCFNStackKey", "gen-ai-chatbot");
 const config = getConfig();
 
 new AwsGenAILLMChatbotStack(app, `${config.prefix}GenAIChatBotStack`, {
