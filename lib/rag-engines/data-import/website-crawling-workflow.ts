@@ -30,6 +30,7 @@ export class WebsiteCrawlingWorkflow extends Construct {
   public readonly rssIngestorFunction: lambda.Function;
   public readonly rssIngestorScheduleGroup: scheduler.CfnScheduleGroup;
   public readonly rssIngestorScheduler: lambda.Function;
+  public readonly rssIngestorScheduleGroupName: string = "RssIngestionGroup";
   constructor(
     scope: Construct,
     id: string,
@@ -86,7 +87,7 @@ export class WebsiteCrawlingWorkflow extends Construct {
       this,
       "RssIngestorScheduleGroup",
       {
-        name: "rss-ingestor-schedule-group",
+        name: this.rssIngestorScheduleGroupName,
       }
     );
 
@@ -102,6 +103,8 @@ export class WebsiteCrawlingWorkflow extends Construct {
       code: lambda.Code.fromAsset(
         path.join(__dirname, "./functions/rss-ingestor")
       ),
+      description:
+        "Function ingests RSS feed items and adds new enteries to dynamoDB table.",
       architecture: props.shared.lambdaArchitecture,
       runtime: props.shared.pythonRuntime,
       memorySize: 1024,
@@ -115,7 +118,7 @@ export class WebsiteCrawlingWorkflow extends Construct {
       logRetention: logs.RetentionDays.ONE_WEEK,
       environment: {
         RSS_FEED_ITEMS_TABLE:
-          props.ragDynamoDBTables.rssFeedItemsTable.tableArn,
+          props.ragDynamoDBTables.rssFeedItemsTable.tableName,
       },
     });
 
@@ -131,6 +134,8 @@ export class WebsiteCrawlingWorkflow extends Construct {
       this,
       "RssIngestorScheduler",
       {
+        description:
+          "Function schedules RSS feed ingestion for a given feed URL",
         code: lambda.Code.fromAsset(
           path.join(__dirname, "./functions/rss-ingestor-scheduler")
         ),
@@ -148,15 +153,28 @@ export class WebsiteCrawlingWorkflow extends Construct {
         environment: {
           RSS_FEED_SCHEDULE_ROLE_ARN: rssSchedulerLambdaInvokeRole.roleArn,
           RSS_FEED_INGESTOR_FUNCTION: rssIngestorFunction.functionArn,
+          SCHEDULE_GROUP: this.rssIngestorScheduleGroupName,
         },
       }
     );
 
     rssIngestorScheduler.addToRolePolicy(
       new iam.PolicyStatement({
-        actions: ["scheduler:CreateScheduler"],
+        actions: ["scheduler:CreateSchedule"],
         effect: iam.Effect.ALLOW,
-        resources: [rssIngestorScheduleGroup.attrArn],
+        resources: ["*"],
+      })
+    );
+    rssIngestorScheduler.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: ["iam:PassRole"],
+        effect: iam.Effect.ALLOW,
+        resources: [rssSchedulerLambdaInvokeRole.roleArn],
+        conditions: {
+          StringLike: {
+            "iam:PassedToService": "scheduler.amazonaws.com",
+          },
+        },
       })
     );
 

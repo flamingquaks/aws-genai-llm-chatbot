@@ -16,9 +16,9 @@ def read_rss(url):
     return feedparser.parse(url)
 
 #Function to loop through feed and put each item in DynamoDB
-def add_feed_entries_to_table(feed_contents, feed_url):
+def add_feed_entries_to_table(feed_contents, rss_feed_url, rag_workspace_id):
     logger.info(f"Adding Parsed RSS Entries to DynamoDB Table")
-    for feed_item in feed_contents:
+    for feed_item in feed_contents['entries']:
         logger.info(f"Adding Post {feed_item['link']}")
         dynamo_response = dynamodb.put_item(
             TableName=rss_feed_items_table,
@@ -27,7 +27,10 @@ def add_feed_entries_to_table(feed_contents, feed_url):
                     'S': feed_item['link']
                 },
                 'FeedURL': {
-                    'S': feed_url
+                    'S': rss_feed_url
+                },
+                'RAGWorkspaceId': {
+                    'S': rag_workspace_id
                 },
                 'PublishDate': {
                     'S': feed_item['published']
@@ -47,6 +50,9 @@ def add_feed_entries_to_table(feed_contents, feed_url):
 @logger.inject_lambda_context(log_event=True)
 def lambda_handler(event, context: LambdaContext):
     logger.info(f"Starting RSS Feed Ingest!")
-    feed_url = event['feed_url']
-    feed_contents = read_rss(feed_url)
-    add_feed_entries_to_table(feed_contents, feed_url)
+    rss_feed_url = event['rss_feed_url']
+    rag_workspace_id = event['rag_workspace_id']
+    logger.info(f"rss_feed_url = {rss_feed_url}")
+    logger.info(f"rag_workspace_id = {rag_workspace_id}")
+    feed_contents = read_rss(rss_feed_url)
+    add_feed_entries_to_table(feed_contents, rss_feed_url, rag_workspace_id)

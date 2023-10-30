@@ -16,6 +16,7 @@ def lambda_handler(event, context: LambdaContext):
     logger.info(f"Received a request to create a schedule")
     rss_feed_name = event['rss_feed_name']
     rss_feed_url = event['rss_feed_url']
+    rag_workspace_id = event['rag_workspace_id']
 
     logger.info(f"rss_feed_name = {rss_feed_name}")
     logger.info(f"rss_feed_url = {rss_feed_url}")
@@ -28,13 +29,13 @@ def lambda_handler(event, context: LambdaContext):
         ScheduleExpression='rate(1 day)',
         Target={
             'Arn': rss_feed_ingestor_function,
-            'Input': f'{{"rss_feed_name": "{rss_feed_name}", "feed_url": "{rss_feed_url}"}}',
+            'Input': f'{{"rss_feed_name": "{rss_feed_name}", "rss_feed_url": "{rss_feed_url}", "rag_workspace_id": "{rag_workspace_id}"}}',
+            'RoleArn':rss_feed_schedule_role_arn
         },
         FlexibleTimeWindow={
             'MaximumWindowInMinutes': 120,
             'Mode': 'FLEXIBLE'
-        },
-        RoleArn=rss_feed_schedule_role_arn
+        }        
     )
     logger.info(f'Created schedule respond = {scheduler_response}')
 
