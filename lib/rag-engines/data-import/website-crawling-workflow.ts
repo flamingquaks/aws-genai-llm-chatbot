@@ -6,6 +6,8 @@ import { Shared } from "../../shared";
 import { RagDynamoDBTables } from "../rag-dynamodb-tables";
 import { OpenSearchVector } from "../opensearch-vector";
 import * as rds from "aws-cdk-lib/aws-rds";
+import * as events from "aws-cdk-lib/aws-events";
+import * as targets from "aws-cdk-lib/aws-events-targets";
 import * as s3 from "aws-cdk-lib/aws-s3";
 import * as sagemaker from "aws-cdk-lib/aws-sagemaker";
 import * as sfn from "aws-cdk-lib/aws-stepfunctions";
@@ -31,6 +33,8 @@ export class WebsiteCrawlingWorkflow extends Construct {
   public readonly rssIngestorScheduleGroup: scheduler.CfnScheduleGroup;
   public readonly rssIngestorScheduler: lambda.Function;
   public readonly rssIngestorScheduleGroupName: string = "RssIngestionGroup";
+  public readonly websiteCrawlRssItemsFunction: lambda.Function;
+
   constructor(
     scope: Construct,
     id: string,
@@ -178,13 +182,75 @@ export class WebsiteCrawlingWorkflow extends Construct {
       })
     );
 
+    const websiteCrawlRssItemsFunction = new lambda.Function(
+      this,
+      "websiteCrawlRssItemsFunction",
+      {
+        vpc: props.shared.vpc,
+        description:
+          "Functions polls the RSS items for pending urls and invokes Website crawler inference. Max of 10 URLs per invoke.",
+        code: lambda.Code.fromAsset(
+          path.join(__dirname, "./functions/website-crawl-rss-items")
+        ),
+        architecture: props.shared.lambdaArchitecture,
+        runtime: props.shared.pythonRuntime,
+        memorySize: 1024,
+        handler: "index.lambda_handler",
+        layers: [
+          props.shared.powerToolsLayer,
+          props.shared.commonLayer,
+          props.shared.pythonSDKLayer,
+        ],
+        timeout: cdk.Duration.minutes(1),
+        environment: {
+          ...props.shared.defaultEnvironmentVariables,
+          CONFIG_PARAMETER_NAME: props.shared.configParameter.parameterName,
+          API_KEYS_SECRETS_ARN: props.shared.apiKeysSecret.secretArn,
+          AURORA_DB_SECRET_ID: props.auroraDatabase?.secret
+            ?.secretArn as string,
+          PROCESSING_BUCKET_NAME: props.processingBucket.bucketName,
+          WORKSPACES_TABLE_NAME:
+            props.ragDynamoDBTables.workspacesTable.tableName,
+          WORKSPACES_BY_OBJECT_TYPE_INDEX_NAME:
+            props.ragDynamoDBTables.workspacesByObjectTypeIndexName,
+          DOCUMENTS_TABLE_NAME:
+            props.ragDynamoDBTables.documentsTable.tableName ?? "",
+          DOCUMENTS_BY_COMPOUND_KEY_INDEX_NAME:
+            props.ragDynamoDBTables.documentsByCompountKeyIndexName ?? "",
+          SAGEMAKER_RAG_MODELS_ENDPOINT:
+            props.sageMakerRagModelsEndpoint?.attrEndpointName ?? "",
+          OPEN_SEARCH_COLLECTION_ENDPOINT:
+            props.openSearchVector?.openSearchCollectionEndpoint ?? "",
+          RSS_FEED_ITEMS_TABLE:
+            props.ragDynamoDBTables.rssFeedItemsTable.tableName,
+          RSS_FEED_ITEMS_TABLE_INDEX:
+            props.ragDynamoDBTables.rssFeedItemsByStatusKeyIndexName,
+        },
+      }
+    );
+
+    const websiteCrawlRssItemsFunctionEvent = new events.Rule(
+      this,
+      "WebsiteCrawlRssItemsFunctionRule",
+      {
+        schedule: events.Schedule.expression("rate(5 minutes)"),
+      }
+    ).addTarget(new targets.LambdaFunction(websiteCrawlRssItemsFunction));
+
     props.ragDynamoDBTables.rssFeedItemsTable.grantReadWriteData(
       rssIngestorFunction
     );
 
+    props.ragDynamoDBTables.rssFeedItemsTable.grantReadWriteData(
+      websiteCrawlRssItemsFunction
+    );
+
     props.shared.configParameter.grantRead(websiteParserFunction);
+    props.shared.configParameter.grantRead(websiteCrawlRssItemsFunction);
     props.shared.apiKeysSecret.grantRead(websiteParserFunction);
+    props.shared.apiKeysSecret.grantRead(websiteCrawlRssItemsFunction);
     props.processingBucket.grantReadWrite(websiteParserFunction);
+    props.processingBucket.grantReadWrite(websiteCrawlRssItemsFunction);
     props.ragDynamoDBTables.workspacesTable.grantReadWriteData(
       websiteParserFunction
     );
@@ -200,51 +266,61 @@ export class WebsiteCrawlingWorkflow extends Construct {
     }
 
     if (props.openSearchVector) {
-      websiteParserFunction.addToRolePolicy(
-        new iam.PolicyStatement({
-          actions: ["aoss:APIAccessAll"],
-          resources: [props.openSearchVector.openSearchCollection.attrArn],
-        })
-      );
+      const openSearchVectorPolicy = new iam.PolicyStatement({
+        actions: ["aoss:APIAccessAll"],
+        resources: [props.openSearchVector.openSearchCollection.attrArn],
+      });
+      websiteParserFunction.addToRolePolicy(openSearchVectorPolicy);
+      websiteCrawlRssItemsFunction.addToRolePolicy(openSearchVectorPolicy);
 
       props.openSearchVector.addToAccessPolicy(
         "website-crawling-workflow",
-        [websiteParserFunction.role?.roleArn],
+        [
+          websiteParserFunction.role?.roleArn,
+          websiteCrawlRssItemsFunction.role?.roleArn,
+        ],
         ["aoss:DescribeIndex", "aoss:ReadDocument", "aoss:WriteDocument"]
       );
 
       props.openSearchVector.createOpenSearchWorkspaceWorkflow.grantStartExecution(
         websiteParserFunction
       );
+      props.openSearchVector.createOpenSearchWorkspaceWorkflow.grantStartExecution(
+        websiteCrawlRssItemsFunction
+      );
     }
 
     if (props.sageMakerRagModelsEndpoint) {
+      const invokeSageMakerRagModelEndpointPolicy = new iam.PolicyStatement({
+        actions: ["sagemaker:InvokeEndpoint"],
+        resources: [props.sageMakerRagModelsEndpoint.ref],
+      });
       websiteParserFunction.addToRolePolicy(
-        new iam.PolicyStatement({
-          actions: ["sagemaker:InvokeEndpoint"],
-          resources: [props.sageMakerRagModelsEndpoint.ref],
-        })
+        invokeSageMakerRagModelEndpointPolicy
+      );
+      websiteCrawlRssItemsFunction.addToRolePolicy(
+        invokeSageMakerRagModelEndpointPolicy
       );
     }
 
     if (props.config.bedrock?.enabled) {
-      websiteParserFunction.addToRolePolicy(
-        new iam.PolicyStatement({
-          actions: [
-            "bedrock:InvokeModel",
-            "bedrock:InvokeModelWithResponseStream",
-          ],
-          resources: ["*"],
-        })
-      );
+      const bedrockInokePolicy = new iam.PolicyStatement({
+        actions: [
+          "bedrock:InvokeModel",
+          "bedrock:InvokeModelWithResponseStream",
+        ],
+        resources: ["*"],
+      });
+      websiteParserFunction.addToRolePolicy(bedrockInokePolicy);
+      websiteCrawlRssItemsFunction.addToRolePolicy(bedrockInokePolicy);
 
       if (props.config.bedrock?.roleArn) {
-        websiteParserFunction.addToRolePolicy(
-          new iam.PolicyStatement({
-            actions: ["sts:AssumeRole"],
-            resources: [props.config.bedrock.roleArn],
-          })
-        );
+        const bedrockAssumePolicy = new iam.PolicyStatement({
+          actions: ["sts:AssumeRole"],
+          resources: [props.config.bedrock.roleArn],
+        });
+        websiteParserFunction.addToRolePolicy(bedrockAssumePolicy);
+        websiteCrawlRssItemsFunction.addToRolePolicy(bedrockAssumePolicy);
       }
     }
 
@@ -344,6 +420,7 @@ export class WebsiteCrawlingWorkflow extends Construct {
     this.rssIngestorFunction = rssIngestorFunction;
     this.rssIngestorScheduleGroup = rssIngestorScheduleGroup;
     this.rssIngestorScheduler = rssIngestorScheduler;
+    this.websiteCrawlRssItemsFunction = websiteCrawlRssItemsFunction;
     this.stateMachine = stateMachine;
   }
 }

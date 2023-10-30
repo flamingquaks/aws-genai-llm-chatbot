@@ -10,7 +10,7 @@ export class RagDynamoDBTables extends Construct {
     "by_object_type_idx";
   public readonly documentsByCompountKeyIndexName: string =
     "by_compound_key_idx";
-  public readonly rssFeedItemsByStatusKeyIndex: string = "by_status_idx";
+  public readonly rssFeedItemsByStatusKeyIndexName: string = "by_status_idx";
 
   constructor(scope: Construct, id: string) {
     super(scope, id);
@@ -81,10 +81,14 @@ export class RagDynamoDBTables extends Construct {
       removalPolicy: cdk.RemovalPolicy.DESTROY,
     });
 
-    rssFeedItemsTable.addLocalSecondaryIndex({
-      indexName: this.rssFeedItemsByStatusKeyIndex,
-      sortKey: {
+    rssFeedItemsTable.addGlobalSecondaryIndex({
+      indexName: this.rssFeedItemsByStatusKeyIndexName,
+      partitionKey: {
         name: "Status",
+        type: dynamodb.AttributeType.STRING,
+      },
+      sortKey: {
+        name: "PostURL",
         type: dynamodb.AttributeType.STRING,
       },
     });

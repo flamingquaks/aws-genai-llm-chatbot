@@ -42,7 +42,7 @@ def add_feed_entries_to_table(feed_contents, rss_feed_url, rag_workspace_id):
                     'S': 'PENDING'
                 }
             },
-            ConditionalExpression='attribute_not_exists(PostURL)'
+            ConditionExpression='attribute_not_exists(PostURL)'
         )
         logger.info(f"DynamoDB Response: {dynamo_response}")
     logger.info(f"Finished Adding Parsed RSS Entries to DynamoDB Table")
