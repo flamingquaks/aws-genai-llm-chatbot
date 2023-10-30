@@ -13,6 +13,7 @@ import * as tasks from "aws-cdk-lib/aws-stepfunctions-tasks";
 import * as iam from "aws-cdk-lib/aws-iam";
 import * as lambda from "aws-cdk-lib/aws-lambda";
 import * as logs from "aws-cdk-lib/aws-logs";
+import * as scheduler from "aws-cdk-lib/aws-scheduler";
 
 export interface WebsiteCrawlingWorkflowProps {
   readonly config: SystemConfig;
@@ -26,7 +27,9 @@ export interface WebsiteCrawlingWorkflowProps {
 
 export class WebsiteCrawlingWorkflow extends Construct {
   public readonly stateMachine: sfn.StateMachine;
-
+  public readonly rssIngestorFunction: lambda.Function;
+  public readonly rssIngestorScheduleGroup: scheduler.CfnScheduleGroup;
+  public readonly rssIngestorScheduler: lambda.Function;
   constructor(
     scope: Construct,
     id: string,
@@ -77,6 +80,88 @@ export class WebsiteCrawlingWorkflow extends Construct {
             props.openSearchVector?.openSearchCollectionEndpoint ?? "",
         },
       }
+    );
+
+    const rssIngestorScheduleGroup = new scheduler.CfnScheduleGroup(
+      this,
+      "RssIngestorScheduleGroup",
+      {
+        name: "rss-ingestor-schedule-group",
+      }
+    );
+
+    const rssSchedulerLambdaInvokeRole = new iam.Role(
+      this,
+      "RssScheduleLambdaInovationRole",
+      {
+        assumedBy: new iam.ServicePrincipal("scheduler.amazonaws.com"),
+      }
+    );
+
+    const rssIngestorFunction = new lambda.Function(this, "RssIngestor", {
+      code: lambda.Code.fromAsset(
+        path.join(__dirname, "./functions/rss-ingestor")
+      ),
+      architecture: props.shared.lambdaArchitecture,
+      runtime: props.shared.pythonRuntime,
+      memorySize: 1024,
+      handler: "index.lambda_handler",
+      layers: [
+        props.shared.powerToolsLayer,
+        props.shared.commonLayer,
+        props.shared.pythonSDKLayer,
+      ],
+      timeout: cdk.Duration.minutes(15),
+      logRetention: logs.RetentionDays.ONE_WEEK,
+      environment: {
+        RSS_FEED_ITEMS_TABLE:
+          props.ragDynamoDBTables.rssFeedItemsTable.tableArn,
+      },
+    });
+
+    rssSchedulerLambdaInvokeRole.addToPolicy(
+      new iam.PolicyStatement({
+        actions: ["lambda:InvokeFunction"],
+        effect: iam.Effect.ALLOW,
+        resources: [rssIngestorFunction.functionArn],
+      })
+    );
+
+    const rssIngestorScheduler = new lambda.Function(
+      this,
+      "RssIngestorScheduler",
+      {
+        code: lambda.Code.fromAsset(
+          path.join(__dirname, "./functions/rss-ingestor-scheduler")
+        ),
+        architecture: props.shared.lambdaArchitecture,
+        runtime: props.shared.pythonRuntime,
+        memorySize: 1024,
+        handler: "index.lambda_handler",
+        layers: [
+          props.shared.powerToolsLayer,
+          props.shared.commonLayer,
+          props.shared.pythonSDKLayer,
+        ],
+        timeout: cdk.Duration.seconds(15),
+        logRetention: logs.RetentionDays.ONE_WEEK,
+        environment: {
+          RSS_FEED_SCHEDULE_ROLE_ARN: rssSchedulerLambdaInvokeRole.roleArn,
+          RSS_FEED_INGESTOR_FUNCTION: rssIngestorFunction.functionArn,
+        },
+      }
+    );
+
+    rssIngestorScheduler.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: ["scheduler:CreateScheduler"],
+        effect: iam.Effect.ALLOW,
+        resources: [rssIngestorScheduleGroup.attrArn],
+      })
+    );
+
+    props.ragDynamoDBTables.rssFeedItemsTable.grantReadWriteData(
+      rssIngestorFunction
     );
 
     props.shared.configParameter.grantRead(websiteParserFunction);
@@ -238,7 +323,9 @@ export class WebsiteCrawlingWorkflow extends Construct {
         resources: ["*"],
       })
     );
-
+    this.rssIngestorFunction = rssIngestorFunction;
+    this.rssIngestorScheduleGroup = rssIngestorScheduleGroup;
+    this.rssIngestorScheduler = rssIngestorScheduler;
     this.stateMachine = stateMachine;
   }
 }

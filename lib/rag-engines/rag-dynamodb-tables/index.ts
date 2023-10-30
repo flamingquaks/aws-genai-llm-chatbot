@@ -3,12 +3,14 @@ import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
 import { Construct } from "constructs";
 
 export class RagDynamoDBTables extends Construct {
+  public readonly rssFeedItemsTable: dynamodb.Table;
   public readonly workspacesTable: dynamodb.Table;
   public readonly documentsTable: dynamodb.Table;
   public readonly workspacesByObjectTypeIndexName: string =
     "by_object_type_idx";
   public readonly documentsByCompountKeyIndexName: string =
     "by_compound_key_idx";
+  public readonly rssFeedItemsByStatusKeyIndex: string = "by_status_idx";
 
   constructor(scope: Construct, id: string) {
     super(scope, id);
@@ -65,7 +67,30 @@ export class RagDynamoDBTables extends Construct {
       },
     });
 
+    const rssFeedItemsTable = new dynamodb.Table(this, "RssFeedItemsTable", {
+      partitionKey: {
+        name: "PostURL",
+        type: dynamodb.AttributeType.STRING,
+      },
+      sortKey: {
+        name: "FeedURL",
+        type: dynamodb.AttributeType.STRING,
+      },
+      billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
+      encryption: dynamodb.TableEncryption.AWS_MANAGED,
+      removalPolicy: cdk.RemovalPolicy.DESTROY,
+    });
+
+    rssFeedItemsTable.addLocalSecondaryIndex({
+      indexName: this.rssFeedItemsByStatusKeyIndex,
+      sortKey: {
+        name: "Status",
+        type: dynamodb.AttributeType.STRING,
+      },
+    });
+
     this.workspacesTable = workspacesTable;
     this.documentsTable = documentsTable;
+    this.rssFeedItemsTable = rssFeedItemsTable;
   }
 }
