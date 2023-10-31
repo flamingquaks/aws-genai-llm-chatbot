@@ -36,41 +36,50 @@ def get_pending_rss_items():
             ExpressionAttributeNames={ "#Status": "Status" }
       )
 
-def set_rss_item_ingested(post_url):
+def set_rss_item_ingested(post_url, rss_feed_url):
      logger.info(f'Setting {post_url} as Ingested')
      return dynamodb.update_item(
           TableName=rss_feed_items_table,
           Key={
                'PostURL': {
                     'S': post_url
+               },
+               'FeedURL': {
+                    'S': rss_feed_url
                }
           },
-          AttributeUpdates={
-               '#Status': {
-                    'S': 'INGESTED'
-               }
-          },
+          UpdateExpression='SET #Status = :status',
           ExpressionAttributeNames={
                '#Status': 'Status'
+          },
+          ExpressionAttributeValues={
+               ':status': {
+                    'S': 'INGESTED'
+               }
           }
      )
 
 
 @logger.inject_lambda_context(log_event=True)
 def lambda_handler(event, context: LambdaContext):    
-    link_limit = 500
+    link_limit = 30
     pending_rss_items = get_pending_rss_items();
+    logger.info(f'pending_rss_items = {pending_rss_items}')
     if len(pending_rss_items['Items']) > 0:
         for rss_item in pending_rss_items['Items']:
             logger.info(f'rss_item = {rss_item}')
             rag_workspace_id = rss_item['RAGWorkspaceId']['S']
             rss_item_address = rss_item['PostURL']['S']
+            rss_item_feed_url = rss_item['FeedURL']['S']
             create_results = create_document(rag_workspace_id, rss_item_address, link_limit)
-            logger.info(f'documentId = {create_results.documentId}')
-            set_rss_item_ingested(rss_item_address)
+            logger.info(f'create_resuls = {create_results}')
+            set_rss_item_ingested(rss_item_address,rss_item_feed_url)
             logger.info(f'Finished ingesting {rss_item_address} into crawler')
     else:
          logger.info("No pending RSS Items to ingest")
+         return {
+              "error": "Error Processing!"
+         }
 
         
         

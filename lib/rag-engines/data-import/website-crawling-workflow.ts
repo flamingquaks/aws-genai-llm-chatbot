@@ -254,8 +254,14 @@ export class WebsiteCrawlingWorkflow extends Construct {
     props.ragDynamoDBTables.workspacesTable.grantReadWriteData(
       websiteParserFunction
     );
+    props.ragDynamoDBTables.workspacesTable.grantReadWriteData(
+      websiteCrawlRssItemsFunction
+    );
     props.ragDynamoDBTables.documentsTable.grantReadWriteData(
       websiteParserFunction
+    );
+    props.ragDynamoDBTables.documentsTable.grantReadWriteData(
+      websiteCrawlRssItemsFunction
     );
 
     if (props.auroraDatabase) {
@@ -417,6 +423,11 @@ export class WebsiteCrawlingWorkflow extends Construct {
         resources: ["*"],
       })
     );
+    websiteCrawlRssItemsFunction.addEnvironment(
+      "WEBSITE_CRAWLING_WORKFLOW_ARN",
+      stateMachine.stateMachineArn
+    );
+    stateMachine.grantStartExecution(websiteCrawlRssItemsFunction);
     this.rssIngestorFunction = rssIngestorFunction;
     this.rssIngestorScheduleGroup = rssIngestorScheduleGroup;
     this.rssIngestorScheduler = rssIngestorScheduler;
