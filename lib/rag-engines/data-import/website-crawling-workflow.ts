@@ -30,10 +30,8 @@ export interface WebsiteCrawlingWorkflowProps {
 export class WebsiteCrawlingWorkflow extends Construct {
   public readonly stateMachine: sfn.StateMachine;
   public readonly rssIngestorFunction: lambda.Function;
-  public readonly rssIngestorScheduleGroup: scheduler.CfnScheduleGroup;
-  public readonly rssIngestorScheduler: lambda.Function;
-  public readonly rssIngestorScheduleGroupName: string = "RssIngestionGroup";
   public readonly websiteCrawlRssItemsFunction: lambda.Function;
+  public readonly scheduledRssIngestFunctionRole: iam.Role;
 
   constructor(
     scope: Construct,
@@ -87,17 +85,9 @@ export class WebsiteCrawlingWorkflow extends Construct {
       }
     );
 
-    const rssIngestorScheduleGroup = new scheduler.CfnScheduleGroup(
+    const scheduledRssIngestFunctionRole = new iam.Role(
       this,
-      "RssIngestorScheduleGroup",
-      {
-        name: this.rssIngestorScheduleGroupName,
-      }
-    );
-
-    const rssSchedulerLambdaInvokeRole = new iam.Role(
-      this,
-      "RssScheduleLambdaInovationRole",
+      "scheduledRssIngestFunctionRole",
       {
         assumedBy: new iam.ServicePrincipal("scheduler.amazonaws.com"),
       }
@@ -126,59 +116,11 @@ export class WebsiteCrawlingWorkflow extends Construct {
       },
     });
 
-    rssSchedulerLambdaInvokeRole.addToPolicy(
+    scheduledRssIngestFunctionRole.addToPolicy(
       new iam.PolicyStatement({
         actions: ["lambda:InvokeFunction"],
         effect: iam.Effect.ALLOW,
         resources: [rssIngestorFunction.functionArn],
-      })
-    );
-
-    const rssIngestorScheduler = new lambda.Function(
-      this,
-      "RssIngestorScheduler",
-      {
-        description:
-          "Function schedules RSS feed ingestion for a given feed URL",
-        code: lambda.Code.fromAsset(
-          path.join(__dirname, "./functions/rss-ingestor-scheduler")
-        ),
-        architecture: props.shared.lambdaArchitecture,
-        runtime: props.shared.pythonRuntime,
-        memorySize: 1024,
-        handler: "index.lambda_handler",
-        layers: [
-          props.shared.powerToolsLayer,
-          props.shared.commonLayer,
-          props.shared.pythonSDKLayer,
-        ],
-        timeout: cdk.Duration.seconds(15),
-        logRetention: logs.RetentionDays.ONE_WEEK,
-        environment: {
-          RSS_FEED_SCHEDULE_ROLE_ARN: rssSchedulerLambdaInvokeRole.roleArn,
-          RSS_FEED_INGESTOR_FUNCTION: rssIngestorFunction.functionArn,
-          SCHEDULE_GROUP: this.rssIngestorScheduleGroupName,
-        },
-      }
-    );
-
-    rssIngestorScheduler.addToRolePolicy(
-      new iam.PolicyStatement({
-        actions: ["scheduler:CreateSchedule"],
-        effect: iam.Effect.ALLOW,
-        resources: ["*"],
-      })
-    );
-    rssIngestorScheduler.addToRolePolicy(
-      new iam.PolicyStatement({
-        actions: ["iam:PassRole"],
-        effect: iam.Effect.ALLOW,
-        resources: [rssSchedulerLambdaInvokeRole.roleArn],
-        conditions: {
-          StringLike: {
-            "iam:PassedToService": "scheduler.amazonaws.com",
-          },
-        },
       })
     );
 
@@ -429,9 +371,8 @@ export class WebsiteCrawlingWorkflow extends Construct {
     );
     stateMachine.grantStartExecution(websiteCrawlRssItemsFunction);
     this.rssIngestorFunction = rssIngestorFunction;
-    this.rssIngestorScheduleGroup = rssIngestorScheduleGroup;
-    this.rssIngestorScheduler = rssIngestorScheduler;
     this.websiteCrawlRssItemsFunction = websiteCrawlRssItemsFunction;
+    this.scheduledRssIngestFunctionRole = scheduledRssIngestFunctionRole;
     this.stateMachine = stateMachine;
   }
 }

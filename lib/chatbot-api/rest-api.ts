@@ -103,8 +103,43 @@ export class RestApi extends Construct {
         DEFAULT_KENDRA_S3_DATA_SOURCE_BUCKET_NAME:
           props.ragEngines?.kendraRetrieval?.kendraS3DataSourceBucket
             ?.bucketName ?? "",
+        RSS_SCHEDULE_GROUP_NAME: "GenAIRssSubscriber",
+        RSS_FEED_INGESTOR_FUNCTION:
+          props.ragEngines?.rssIngestorFunctionArn ?? "",
+        RSS_FEED_SCHEDULE_ROLE_ARN:
+          props.ragEngines?.scheduledRssIngestFunctionRoleArn ?? "",
       },
     });
+
+    if (props.ragEngines) {
+      apiHandler.addToRolePolicy(
+        new iam.PolicyStatement({
+          actions: [
+            "scheduler:CreateSchedule",
+            "scheduler:DeleteSchedule",
+            "scheduler:ListSchedules",
+          ],
+          effect: iam.Effect.ALLOW,
+          resources: [
+            `arn:aws:scheduler:*:*:schedule-group/GenAIRssSubscriber/*`,
+          ],
+        })
+      );
+      if (props.ragEngines.scheduledRssIngestFunctionRoleArn) {
+        apiHandler.addToRolePolicy(
+          new iam.PolicyStatement({
+            actions: ["iam:PassRole"],
+            effect: iam.Effect.ALLOW,
+            resources: [props.ragEngines.scheduledRssIngestFunctionRoleArn],
+            conditions: {
+              StringLike: {
+                "iam:PassedToService": "scheduler.amazonaws.com",
+              },
+            },
+          })
+        );
+      }
+    }
 
     if (props.ragEngines?.workspacesTable) {
       props.ragEngines.workspacesTable.grantReadWriteData(apiHandler);

@@ -42,6 +42,8 @@ export class DataImport extends Construct {
   public readonly ingestionQueue: sqs.Queue;
   public readonly fileImportWorkflow: sfn.StateMachine;
   public readonly websiteCrawlingWorkflow: sfn.StateMachine;
+  public readonly rssIngestorFunctionArn: string;
+  public readonly scheduledRssIngestFunctionRoleArn: string;
 
   constructor(scope: Construct, id: string, props: DataImportProps) {
     super(scope, id);
@@ -209,5 +211,9 @@ export class DataImport extends Construct {
     this.ingestionQueue = ingestionQueue;
     this.fileImportWorkflow = fileImportWorkflow.stateMachine;
     this.websiteCrawlingWorkflow = websiteCrawlingWorkflow.stateMachine;
+    this.rssIngestorFunctionArn =
+      websiteCrawlingWorkflow.rssIngestorFunction.functionArn;
+    this.scheduledRssIngestFunctionRoleArn =
+      websiteCrawlingWorkflow.scheduledRssIngestFunctionRole.roleArn;
   }
 }

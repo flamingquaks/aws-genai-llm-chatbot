@@ -31,6 +31,8 @@ export class RagEngines extends Construct {
   public readonly fileImportWorkflow?: sfn.StateMachine;
   public readonly websiteCrawlingWorkflow?: sfn.StateMachine;
   public readonly deleteWorkspaceWorkflow?: sfn.StateMachine;
+  public readonly scheduledRssIngestFunctionRoleArn: string;
+  public readonly rssIngestorFunctionArn: string;
 
   constructor(scope: Construct, id: string, props: RagEnginesProps) {
     super(scope, id);
@@ -88,6 +90,10 @@ export class RagEngines extends Construct {
       openSearchVector: openSearchVector ?? undefined,
       kendraRetrieval: kendraRetrieval ?? undefined,
     });
+
+    this.scheduledRssIngestFunctionRoleArn =
+      dataImport.scheduledRssIngestFunctionRoleArn;
+    this.rssIngestorFunctionArn = dataImport.rssIngestorFunctionArn;
 
     const workspaces = new Workspaces(this, "Workspaces", {
       shared: props.shared,
