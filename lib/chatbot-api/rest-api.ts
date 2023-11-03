@@ -127,11 +127,7 @@ export class RestApi extends Construct {
       );
       apiHandler.addToRolePolicy(
         new iam.PolicyStatement({
-          actions: [
-            "scheduler:CreateSchedule",
-            "scheduler:DeleteSchedule",
-            "scheduler:DeleteSchedule",
-          ],
+          actions: ["scheduler:CreateSchedule", "scheduler:DeleteSchedule"],
           effect: iam.Effect.ALLOW,
           resources: [
             `arn:aws:scheduler:${cdk.Aws.REGION}:${cdk.Aws.ACCOUNT_ID}:schedule/GenAIRssSubscriber*`,

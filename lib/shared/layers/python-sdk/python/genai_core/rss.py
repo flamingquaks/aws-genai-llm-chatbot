@@ -40,6 +40,7 @@ def delete_rss_subscription(workspace_id, rss_feed_title):
 
 
 # List Schedules for a Workspace
+# TODO Need to change return to be feedUrl, title
 def list_rss_subscriptions(workspace_id):
     schedule_group = f'{RSS_SCHEDULE_GROUP_NAME}.{workspace_id}'
     scheduler_response = scheduler.list_schedules(
