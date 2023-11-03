@@ -28,6 +28,7 @@ import AddText from "./add-text";
 import AddQnA from "./add-qna";
 import CrawlWebsite from "./crawl-website";
 import DataFileUpload from "./data-file-upload";
+import AddRssSubscription from "./add-rss-subscription";
 
 export default function AddData() {
   const onFollow = useOnFollow();
@@ -218,6 +219,20 @@ export default function AddData() {
                     disabled: disabledTabs.includes("website"),
                     content: (
                       <CrawlWebsite
+                        data={data}
+                        validate={validate}
+                        submitting={submitting}
+                        setSubmitting={setSubmitting}
+                        selectedWorkspace={selectedWorkspace}
+                      />
+                    ),
+                  },
+                  {
+                    label: "RSS Feeds",
+                    id: "rss",
+                    disabled: disabledTabs.includes("website"),
+                    content: (
+                      <AddRssSubscription
                         data={data}
                         validate={validate}
                         submitting={submitting}

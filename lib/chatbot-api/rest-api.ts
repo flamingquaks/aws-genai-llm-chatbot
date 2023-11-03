@@ -118,6 +118,10 @@ export class RestApi extends Construct {
             "scheduler:CreateSchedule",
             "scheduler:DeleteSchedule",
             "scheduler:ListSchedules",
+            "scheduler:CreateScheduleGroup",
+            "scheduler:DeleteScheduleGroup",
+            "scheduler:DeleteSchedule",
+            "scheduler:ListScheduleGroups",
           ],
           effect: iam.Effect.ALLOW,
           resources: [

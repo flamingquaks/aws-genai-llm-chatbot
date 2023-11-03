@@ -33,6 +33,7 @@ def list_rss_subscriptions(workspace_id: str):
     return {
         "ok": True,
         "data": {
+            "workspaceId" : workspace_id,
             "items": [result["items"]],
 
         },
