@@ -10,8 +10,8 @@ router = Router()
 logger = Logger()
 
 class RssFeedRequest(BaseModel):
-    url: str
-    title: str
+    rssFeedUrl: str
+    rssFeedTitle: str
 
 
 
@@ -21,7 +21,7 @@ def subscribe_to_rss(workspace_id: str):
     data: dict = router.current_event.json_body
     request = RssFeedRequest(**data)   
 
-    result = genai_core.rss.create_rss_subscription(workspace_id, request.url,request.title)
+    result = genai_core.rss.create_rss_subscription(workspace_id, request.rssFeedUrl,request.rssFeedTitle)
 
     return {"ok": True, "data": result}
 

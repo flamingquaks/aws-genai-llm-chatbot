@@ -97,7 +97,8 @@ export default function AddData() {
 
   const workspace = workspaces.find((c) => c.id === data.workspace?.value);
   const showTabs = !workspace?.kendraIndexExternal;
-  const disabledTabs = workspace?.engine === "kendra" ? ["qna", "website"] : [];
+  const disabledTabs =
+    workspace?.engine === "kendra" ? ["qna", "website", "rss"] : [];
 
   return (
     <BaseAppLayout
@@ -230,7 +231,7 @@ export default function AddData() {
                   {
                     label: "RSS Feeds",
                     id: "rss",
-                    disabled: disabledTabs.includes("website"),
+                    disabled: disabledTabs.includes("rss"),
                     content: (
                       <AddRssSubscription
                         data={data}

@@ -115,17 +115,35 @@ export class RestApi extends Construct {
       apiHandler.addToRolePolicy(
         new iam.PolicyStatement({
           actions: [
-            "scheduler:CreateSchedule",
-            "scheduler:DeleteSchedule",
-            "scheduler:ListSchedules",
             "scheduler:CreateScheduleGroup",
-            "scheduler:DeleteScheduleGroup",
-            "scheduler:DeleteSchedule",
             "scheduler:ListScheduleGroups",
+            "scheduler:DeleteScheduleGroup",
           ],
           effect: iam.Effect.ALLOW,
           resources: [
-            `arn:aws:scheduler:*:*:schedule-group/GenAIRssSubscriber/*`,
+            `arn:aws:scheduler:${cdk.Aws.REGION}:${cdk.Aws.ACCOUNT_ID}:schedule-group/GenAIRssSubscriber*`,
+          ],
+        })
+      );
+      apiHandler.addToRolePolicy(
+        new iam.PolicyStatement({
+          actions: [
+            "scheduler:CreateSchedule",
+            "scheduler:DeleteSchedule",
+            "scheduler:DeleteSchedule",
+          ],
+          effect: iam.Effect.ALLOW,
+          resources: [
+            `arn:aws:scheduler:${cdk.Aws.REGION}:${cdk.Aws.ACCOUNT_ID}:schedule/GenAIRssSubscriber*`,
+          ],
+        })
+      );
+      apiHandler.addToRolePolicy(
+        new iam.PolicyStatement({
+          actions: ["scheduler:ListSechedules"],
+          effect: iam.Effect.ALLOW,
+          resources: [
+            `arn:aws:scheduler:${cdk.Aws.REGION}:${cdk.Aws.ACCOUNT_ID}:schedule/*`,
           ],
         })
       );

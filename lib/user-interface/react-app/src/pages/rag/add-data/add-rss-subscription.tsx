@@ -26,8 +26,8 @@ export interface AddRssSubscriptionProps {
 }
 
 interface AddRssSubscriptionData {
-  websiteUrl: string;
-  feedTitle: string;
+  rssFeedUrl: string;
+  rssFeedTitle: string;
 }
 
 export default function AddRssSubscription(props: AddRssSubscriptionProps) {
@@ -39,17 +39,17 @@ export default function AddRssSubscription(props: AddRssSubscriptionProps) {
   const { data, onChange, errors, validate } = useForm<AddRssSubscriptionData>({
     initialValue: () => {
       return {
-        websiteUrl: "",
-        feedTitle: "",
+        rssFeedUrl: "",
+        rssFeedTitle: "",
       };
     },
     validate: (form) => {
       const errors: Record<string, string | string[]> = {};
 
-      if (form.websiteUrl.length === 0) {
-        errors.websiteUrl = "Website address is required";
-      } else if (Utils.isValidURL(form.websiteUrl) === false) {
-        errors.websiteUrl = "Website address is not valid.";
+      if (form.rssFeedUrl.length === 0) {
+        errors.rssFeedUrl = "Website address is required";
+      } else if (Utils.isValidURL(form.rssFeedUrl) === false) {
+        errors.rssFeedUrl = "Website address is not valid.";
       }
 
       return errors;
@@ -70,8 +70,8 @@ export default function AddRssSubscription(props: AddRssSubscriptionProps) {
     const apiClient = new ApiClient(appContext);
     const result = await apiClient.rss.addRssFeedSubscription(
       props.data.workspace.value,
-      data.websiteUrl,
-      data.feedTitle
+      data.rssFeedUrl,
+      data.rssFeedTitle
     );
 
     if (ResultValue.ok(result)) {
@@ -86,7 +86,7 @@ export default function AddRssSubscription(props: AddRssSubscriptionProps) {
         },
       });
 
-      onChange({ websiteUrl: "" }, true);
+      onChange({ rssFeedUrl: "" }, true);
     } else {
       setGlobalError(Utils.getErrorMessage(result));
     }
@@ -120,16 +120,16 @@ export default function AddRssSubscription(props: AddRssSubscriptionProps) {
           <SpaceBetween size="l">
             <FormField
               label="RSS Feed URL"
-              errorText={errors.websiteUrl}
+              errorText={errors.rssFeedUrl}
               description="Address should start with http:// or https://"
             >
               <Input
                 placeholder="https://example.com/rss"
                 disabled={props.submitting}
                 type="url"
-                value={data.websiteUrl}
+                value={data.rssFeedUrl}
                 onChange={({ detail: { value } }) =>
-                  onChange({ websiteUrl: value })
+                  onChange({ rssFeedUrl: value })
                 }
               />
             </FormField>
@@ -141,9 +141,9 @@ export default function AddRssSubscription(props: AddRssSubscriptionProps) {
                 placeholder="Cool RSS Feed"
                 disabled={props.submitting}
                 type="text"
-                value={data.feedTitle}
+                value={data.rssFeedTitle}
                 onChange={({ detail: { value } }) =>
-                  onChange({ feedTitle: value })
+                  onChange({ rssFeedTitle: value })
                 }
               />
             </FormField>
