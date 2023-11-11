@@ -33,7 +33,7 @@ export interface DataImportProps {
   readonly workspacesTable: dynamodb.Table;
   readonly documentsTable: dynamodb.Table;
   readonly workspacesByObjectTypeIndexName: string;
-  readonly documentsByCompountKeyIndexName: string;
+  readonly documentsByCompoundKeyIndexName: string;
 }
 
 export class DataImport extends Construct {
@@ -143,7 +143,7 @@ export class DataImport extends Construct {
     );
 
     const uploadHandler = new lambda.Function(this, "UploadHandler", {
-      code: lambda.Code.fromAsset(
+      code: props.shared.sharedCode.bundleWithLambdaAsset(
         path.join(__dirname, "./functions/upload-handler")
       ),
       handler: "index.lambda_handler",
@@ -153,11 +153,7 @@ export class DataImport extends Construct {
       memorySize: 512,
       tracing: lambda.Tracing.ACTIVE,
       logRetention: logs.RetentionDays.ONE_WEEK,
-      layers: [
-        props.shared.powerToolsLayer,
-        props.shared.commonLayer,
-        props.shared.pythonSDKLayer,
-      ],
+      layers: [props.shared.powerToolsLayer, props.shared.commonLayer],
       vpc: props.shared.vpc,
       vpcSubnets: props.shared.vpc.privateSubnets as ec2.SubnetSelection,
       environment: {
@@ -171,7 +167,7 @@ export class DataImport extends Construct {
           props.workspacesByObjectTypeIndexName ?? "",
         DOCUMENTS_TABLE_NAME: props.documentsTable.tableName ?? "",
         DOCUMENTS_BY_COMPOUND_KEY_INDEX_NAME:
-          props.documentsByCompountKeyIndexName ?? "",
+          props.documentsByCompoundKeyIndexName ?? "",
         SAGEMAKER_RAG_MODELS_ENDPOINT:
           props.sageMakerRagModels?.model.endpoint.attrEndpointName ?? "",
         FILE_IMPORT_WORKFLOW_ARN:

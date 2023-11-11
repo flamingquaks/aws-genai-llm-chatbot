@@ -7,6 +7,7 @@ import { Construct } from "constructs";
 import * as path from "path";
 import { Layer } from "../layer";
 import { SystemConfig } from "./types";
+import { SharedAssetBundler } from "./shared-asset-bundler";
 
 const pythonRuntime = lambda.Runtime.PYTHON_3_11;
 const lambdaArchitecture = lambda.Architecture.X86_64;
@@ -26,7 +27,7 @@ export class Shared extends Construct {
   readonly apiKeysSecret: secretsmanager.Secret;
   readonly commonLayer: lambda.ILayerVersion;
   readonly powerToolsLayer: lambda.ILayerVersion;
-  readonly pythonSDKLayer: lambda.ILayerVersion;
+  readonly sharedCode: SharedAssetBundler;
 
   constructor(scope: Construct, id: string, props: SharedProps) {
     super(scope, id);
@@ -122,12 +123,9 @@ export class Shared extends Construct {
       path: path.join(__dirname, "./layers/common"),
     });
 
-    const pythonSDKLayer = new lambda.LayerVersion(this, "PythonSDKLayer", {
-      code: lambda.Code.fromAsset(path.join(__dirname, "./layers/python-sdk")),
-      compatibleRuntimes: [pythonRuntime],
-      compatibleArchitectures: [lambdaArchitecture],
-      removalPolicy: cdk.RemovalPolicy.DESTROY,
-    });
+    this.sharedCode = new SharedAssetBundler(this, 'genai-core', [ 
+      path.join(__dirname, 'layers', 'python-sdk', 'python', 'genai_core')
+    ])
 
     const xOriginVerifySecret = new secretsmanager.Secret(
       this,
@@ -153,7 +151,6 @@ export class Shared extends Construct {
     this.apiKeysSecret = apiKeysSecret;
     this.powerToolsLayer = powerToolsLayer;
     this.commonLayer = commonLayer.layer;
-    this.pythonSDKLayer = pythonSDKLayer;
 
     new cdk.CfnOutput(this, "ApiKeysSecretName", {
       value: apiKeysSecret.secretName,

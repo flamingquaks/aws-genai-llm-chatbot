@@ -3,7 +3,6 @@ import * as cdk from "aws-cdk-lib";
 import { SageMakerModelEndpoint, SystemConfig } from "../shared/types";
 import { Construct } from "constructs";
 import { RagEngines } from "../rag-engines";
-import { Shared } from "../shared";
 import * as apigateway from "aws-cdk-lib/aws-apigateway";
 import * as cognito from "aws-cdk-lib/aws-cognito";
 import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
@@ -12,6 +11,7 @@ import * as iam from "aws-cdk-lib/aws-iam";
 import * as lambda from "aws-cdk-lib/aws-lambda";
 import * as logs from "aws-cdk-lib/aws-logs";
 import * as ssm from "aws-cdk-lib/aws-ssm";
+import { Shared } from "../shared";
 
 export interface RestApiProps {
   readonly shared: Shared;
@@ -35,7 +35,7 @@ export class RestApi extends Construct {
     });
 
     const apiHandler = new lambda.Function(this, "ApiHandler", {
-      code: lambda.Code.fromAsset(
+      code: props.shared.sharedCode.bundleWithLambdaAsset(
         path.join(__dirname, "./functions/api-handler")
       ),
       handler: "index.handler",
@@ -45,11 +45,7 @@ export class RestApi extends Construct {
       memorySize: 512,
       tracing: lambda.Tracing.ACTIVE,
       logRetention: logs.RetentionDays.ONE_WEEK,
-      layers: [
-        props.shared.powerToolsLayer,
-        props.shared.commonLayer,
-        props.shared.pythonSDKLayer,
-      ],
+      layers: [props.shared.powerToolsLayer, props.shared.commonLayer],
       vpc: props.shared.vpc,
       securityGroups: [apiSecurityGroup],
       vpcSubnets: props.shared.vpc.privateSubnets as ec2.SubnetSelection,

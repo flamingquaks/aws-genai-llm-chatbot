@@ -154,16 +154,12 @@ export class IdeficsInterface extends Construct {
       "IdeficsInterfaceRequestHandler",
       {
         vpc: props.shared.vpc,
-        code: lambda.Code.fromAsset(
+        code: props.shared.sharedCode.bundleWithLambdaAsset(
           path.join(__dirname, "./functions/request-handler")
         ),
         runtime: props.shared.pythonRuntime,
         handler: "index.handler",
-        layers: [
-          props.shared.powerToolsLayer,
-          props.shared.commonLayer,
-          props.shared.pythonSDKLayer,
-        ],
+        layers: [props.shared.powerToolsLayer, props.shared.commonLayer],
         architecture: props.shared.lambdaArchitecture,
         tracing: lambda.Tracing.ACTIVE,
         timeout: cdk.Duration.minutes(lambdaDurationInMinutes),

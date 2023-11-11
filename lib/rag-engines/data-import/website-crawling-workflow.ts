@@ -46,7 +46,7 @@ export class WebsiteCrawlingWorkflow extends Construct {
       "WebsiteParserFunction",
       {
         vpc: props.shared.vpc,
-        code: lambda.Code.fromAsset(
+        code: props.shared.sharedCode.bundleWithLambdaAsset(
           path.join(
             __dirname,
             "./functions/website-crawling-workflow/website-parser"
@@ -56,11 +56,7 @@ export class WebsiteCrawlingWorkflow extends Construct {
         architecture: props.shared.lambdaArchitecture,
         memorySize: 1024,
         handler: "index.lambda_handler",
-        layers: [
-          props.shared.powerToolsLayer,
-          props.shared.commonLayer,
-          props.shared.pythonSDKLayer,
-        ],
+        layers: [props.shared.powerToolsLayer, props.shared.commonLayer],
         timeout: cdk.Duration.minutes(15),
         logRetention: logs.RetentionDays.ONE_WEEK,
         environment: {
@@ -77,7 +73,7 @@ export class WebsiteCrawlingWorkflow extends Construct {
           DOCUMENTS_TABLE_NAME:
             props.ragDynamoDBTables.documentsTable.tableName ?? "",
           DOCUMENTS_BY_COMPOUND_KEY_INDEX_NAME:
-            props.ragDynamoDBTables.documentsByCompountKeyIndexName ?? "",
+            props.ragDynamoDBTables.documentsByCompoundKeyIndexName ?? "",
           SAGEMAKER_RAG_MODELS_ENDPOINT:
             props.sageMakerRagModelsEndpoint?.attrEndpointName ?? "",
           OPEN_SEARCH_COLLECTION_ENDPOINT:

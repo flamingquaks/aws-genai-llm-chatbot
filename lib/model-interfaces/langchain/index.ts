@@ -31,7 +31,7 @@ export class LangChainInterface extends Construct {
 
     const requestHandler = new lambda.Function(this, "RequestHandler", {
       vpc: props.shared.vpc,
-      code: lambda.Code.fromAsset(
+      code: props.shared.sharedCode.bundleWithLambdaAsset(
         path.join(__dirname, "./functions/request-handler")
       ),
       handler: "index.handler",
@@ -41,11 +41,7 @@ export class LangChainInterface extends Construct {
       timeout: cdk.Duration.minutes(15),
       memorySize: 1024,
       logRetention: logs.RetentionDays.ONE_WEEK,
-      layers: [
-        props.shared.powerToolsLayer,
-        props.shared.commonLayer,
-        props.shared.pythonSDKLayer,
-      ],
+      layers: [props.shared.powerToolsLayer, props.shared.commonLayer],
       environment: {
         ...props.shared.defaultEnvironmentVariables,
         CONFIG_PARAMETER_NAME: props.shared.configParameter.parameterName,

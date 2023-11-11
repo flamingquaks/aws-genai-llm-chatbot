@@ -28,17 +28,13 @@ export class CreateAuroraWorkspace extends Construct {
       "CreateAuroraWorkspaceFunction",
       {
         vpc: props.shared.vpc,
-        code: lambda.Code.fromAsset(
+        code: props.shared.sharedCode.bundleWithLambdaAsset(
           path.join(__dirname, "./functions/create-workflow/create")
         ),
         runtime: props.shared.pythonRuntime,
         architecture: props.shared.lambdaArchitecture,
         handler: "index.lambda_handler",
-        layers: [
-          props.shared.powerToolsLayer,
-          props.shared.commonLayer,
-          props.shared.pythonSDKLayer,
-        ],
+        layers: [props.shared.powerToolsLayer, props.shared.commonLayer],
         timeout: cdk.Duration.minutes(5),
         logRetention: logs.RetentionDays.ONE_WEEK,
         environment: {

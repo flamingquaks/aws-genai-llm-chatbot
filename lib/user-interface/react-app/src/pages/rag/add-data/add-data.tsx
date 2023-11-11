@@ -28,6 +28,7 @@ import AddText from "./add-text";
 import AddQnA from "./add-qna";
 import CrawlWebsite from "./crawl-website";
 import DataFileUpload from "./data-file-upload";
+import { CHATBOT_NAME } from "../../../common/constants";
 import AddRssSubscription from "./add-rss-subscription";
 
 export default function AddData() {
@@ -108,7 +109,7 @@ export default function AddData() {
           onFollow={onFollow}
           items={[
             {
-              text: "AWS GenAI Chatbot",
+              text: CHATBOT_NAME,
               href: "/",
             },
             {

@@ -8,7 +8,7 @@ export class RagDynamoDBTables extends Construct {
   public readonly documentsTable: dynamodb.Table;
   public readonly workspacesByObjectTypeIndexName: string =
     "by_object_type_idx";
-  public readonly documentsByCompountKeyIndexName: string =
+  public readonly documentsByCompoundKeyIndexName: string =
     "by_compound_key_idx";
   public readonly rssFeedDocumentTypeStatusIndexName: string =
     "by_document_type_status_idx";
@@ -59,7 +59,7 @@ export class RagDynamoDBTables extends Construct {
     });
 
     documentsTable.addGlobalSecondaryIndex({
-      indexName: this.documentsByCompountKeyIndexName,
+      indexName: this.documentsByCompoundKeyIndexName,
       partitionKey: {
         name: "workspace_id",
         type: dynamodb.AttributeType.STRING,
