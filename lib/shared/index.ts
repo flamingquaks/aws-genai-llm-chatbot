@@ -123,9 +123,9 @@ export class Shared extends Construct {
       path: path.join(__dirname, "./layers/common"),
     });
 
-    this.sharedCode = new SharedAssetBundler(this, 'genai-core', [ 
-      path.join(__dirname, 'layers', 'python-sdk', 'python', 'genai_core')
-    ])
+    this.sharedCode = new SharedAssetBundler(this, "genai-core", [
+      path.join(__dirname, "layers", "python-sdk", "python", "genai_core"),
+    ]);
 
     const xOriginVerifySecret = new secretsmanager.Secret(
       this,

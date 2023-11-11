@@ -104,11 +104,7 @@ export class WebsiteCrawlingWorkflow extends Construct {
       runtime: props.shared.pythonRuntime,
       memorySize: 1024,
       handler: "index.lambda_handler",
-      layers: [
-        props.shared.powerToolsLayer,
-        props.shared.commonLayer,
-        props.shared.pythonSDKLayer,
-      ],
+      layers: [props.shared.powerToolsLayer, props.shared.commonLayer],
       timeout: cdk.Duration.minutes(15),
       logRetention: logs.RetentionDays.ONE_WEEK,
       environment: {
@@ -125,7 +121,7 @@ export class WebsiteCrawlingWorkflow extends Construct {
         DOCUMENTS_TABLE_NAME:
           props.ragDynamoDBTables.documentsTable.tableName ?? "",
         DOCUMENTS_BY_COMPOUND_KEY_INDEX_NAME:
-          props.ragDynamoDBTables.documentsByCompountKeyIndexName ?? "",
+          props.ragDynamoDBTables.documentsByCompoundKeyIndexName ?? "",
         SAGEMAKER_RAG_MODELS_ENDPOINT:
           props.sageMakerRagModelsEndpoint?.attrEndpointName ?? "",
         OPEN_SEARCH_COLLECTION_ENDPOINT:
@@ -160,11 +156,7 @@ export class WebsiteCrawlingWorkflow extends Construct {
         runtime: props.shared.pythonRuntime,
         memorySize: 1024,
         handler: "index.lambda_handler",
-        layers: [
-          props.shared.powerToolsLayer,
-          props.shared.commonLayer,
-          props.shared.pythonSDKLayer,
-        ],
+        layers: [props.shared.powerToolsLayer, props.shared.commonLayer],
         timeout: cdk.Duration.minutes(5),
         environment: {
           ...props.shared.defaultEnvironmentVariables,
@@ -180,7 +172,7 @@ export class WebsiteCrawlingWorkflow extends Construct {
           DOCUMENTS_TABLE_NAME:
             props.ragDynamoDBTables.documentsTable.tableName ?? "",
           DOCUMENTS_BY_COMPOUND_KEY_INDEX_NAME:
-            props.ragDynamoDBTables.documentsByCompountKeyIndexName ?? "",
+            props.ragDynamoDBTables.documentsByCompoundKeyIndexName ?? "",
           SAGEMAKER_RAG_MODELS_ENDPOINT:
             props.sageMakerRagModelsEndpoint?.attrEndpointName ?? "",
           OPEN_SEARCH_COLLECTION_ENDPOINT:
