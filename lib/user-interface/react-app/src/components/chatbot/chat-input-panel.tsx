@@ -50,7 +50,11 @@ import {
   ChatInputState,
   ImageFile,
 } from "./types";
-import { getSelectedModelMetadata, getSignedUrl, updateMessageHistory } from "./utils";
+import {
+  getSelectedModelMetadata,
+  getSignedUrl,
+  updateMessageHistory,
+} from "./utils";
 
 export interface ChatInputPanelProps {
   running: boolean;
@@ -376,12 +380,12 @@ export default function ChatInputPanel(props: ChatInputPanelProps) {
             )}
           </SpaceBetween>
           <ImageDialog
-              sessionId={props.session.id}
-              visible={imageDialogVisible}
-              setVisible={setImageDialogVisible}
-              configuration={props.configuration}
-              setConfiguration={props.setConfiguration}
-            />
+            sessionId={props.session.id}
+            visible={imageDialogVisible}
+            setVisible={setImageDialogVisible}
+            configuration={props.configuration}
+            setConfiguration={props.setConfiguration}
+          />
           <TextareaAutosize
             className={styles.input_textarea}
             maxRows={6}
@@ -637,4 +641,3 @@ function getSelectedModelOption(
 
   return selectedModelOption;
 }
-

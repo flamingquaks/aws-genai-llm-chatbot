@@ -44,6 +44,7 @@ export class DataImport extends Construct {
   public readonly websiteCrawlingWorkflow: sfn.StateMachine;
   public readonly rssIngestorFunctionArn: string;
   public readonly scheduledRssIngestFunctionRoleArn: string;
+  public readonly rssIngestorScheduleGroup: string;
 
   constructor(scope: Construct, id: string, props: DataImportProps) {
     super(scope, id);
@@ -215,5 +216,7 @@ export class DataImport extends Construct {
       websiteCrawlingWorkflow.rssIngestorFunction.functionArn;
     this.scheduledRssIngestFunctionRoleArn =
       websiteCrawlingWorkflow.scheduledRssIngestFunctionRole.roleArn;
+    this.rssIngestorScheduleGroup =
+      websiteCrawlingWorkflow.rssIngestorScheduleGroup;
   }
 }

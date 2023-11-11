@@ -3,14 +3,17 @@ import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
 import { Construct } from "constructs";
 
 export class RagDynamoDBTables extends Construct {
-  public readonly rssFeedItemsTable: dynamodb.Table;
+  public readonly rssFeedTable: dynamodb.Table;
   public readonly workspacesTable: dynamodb.Table;
   public readonly documentsTable: dynamodb.Table;
   public readonly workspacesByObjectTypeIndexName: string =
     "by_object_type_idx";
   public readonly documentsByCompountKeyIndexName: string =
     "by_compound_key_idx";
-  public readonly rssFeedItemsByStatusKeyIndexName: string = "by_status_idx";
+  public readonly rssFeedDocumentTypeStatusIndexName: string =
+    "by_document_type_status_idx";
+  public readonly rssFeedWorkspaceDocumentTypesIndexName: string =
+    "by_workspace_document_type_idx";
 
   constructor(scope: Construct, id: string) {
     super(scope, id);
@@ -67,13 +70,13 @@ export class RagDynamoDBTables extends Construct {
       },
     });
 
-    const rssFeedItemsTable = new dynamodb.Table(this, "RssFeedItemsTable", {
+    const rssFeedTable = new dynamodb.Table(this, "RssFeedTable", {
       partitionKey: {
-        name: "PostURL",
+        name: "workspace_id",
         type: dynamodb.AttributeType.STRING,
       },
       sortKey: {
-        name: "FeedURL",
+        name: "compound_sort_key",
         type: dynamodb.AttributeType.STRING,
       },
       billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
@@ -81,20 +84,28 @@ export class RagDynamoDBTables extends Construct {
       removalPolicy: cdk.RemovalPolicy.DESTROY,
     });
 
-    rssFeedItemsTable.addGlobalSecondaryIndex({
-      indexName: this.rssFeedItemsByStatusKeyIndexName,
+    rssFeedTable.addLocalSecondaryIndex({
+      indexName: this.rssFeedWorkspaceDocumentTypesIndexName,
+      sortKey: {
+        name: "document_type",
+        type: dynamodb.AttributeType.STRING,
+      },
+    });
+
+    rssFeedTable.addGlobalSecondaryIndex({
+      indexName: this.rssFeedDocumentTypeStatusIndexName,
       partitionKey: {
-        name: "Status",
+        name: "document_type",
         type: dynamodb.AttributeType.STRING,
       },
       sortKey: {
-        name: "PostURL",
+        name: "status",
         type: dynamodb.AttributeType.STRING,
       },
     });
 
     this.workspacesTable = workspacesTable;
     this.documentsTable = documentsTable;
-    this.rssFeedItemsTable = rssFeedItemsTable;
+    this.rssFeedTable = rssFeedTable;
   }
 }

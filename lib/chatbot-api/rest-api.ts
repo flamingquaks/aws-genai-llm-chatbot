@@ -103,52 +103,46 @@ export class RestApi extends Construct {
         DEFAULT_KENDRA_S3_DATA_SOURCE_BUCKET_NAME:
           props.ragEngines?.kendraRetrieval?.kendraS3DataSourceBucket
             ?.bucketName ?? "",
-        RSS_SCHEDULE_GROUP_NAME: "GenAIRssSubscriber",
+        RSS_SCHEDULE_GROUP_NAME:
+          props.ragEngines?.dataImport.rssIngestorScheduleGroup ?? "",
         RSS_FEED_INGESTOR_FUNCTION:
-          props.ragEngines?.rssIngestorFunctionArn ?? "",
+          props.ragEngines?.dataImport.rssIngestorFunctionArn ?? "",
         RSS_FEED_SCHEDULE_ROLE_ARN:
-          props.ragEngines?.scheduledRssIngestFunctionRoleArn ?? "",
+          props.ragEngines?.dataImport.scheduledRssIngestFunctionRoleArn ?? "",
+        RSS_FEED_TABLE: props.ragEngines?.rssFeedTable.tableName ?? "",
       },
     });
 
-    if (props.ragEngines) {
+    if (props.ragEngines?.workspacesTable) {
+      props.ragEngines.workspacesTable.grantReadWriteData(apiHandler);
+    }
+
+    if (props.ragEngines?.documentsTable) {
+      props.ragEngines.documentsTable.grantReadWriteData(apiHandler);
+    }
+
+    if (props.ragEngines?.rssFeedTable) {
+      props.ragEngines.rssFeedTable.grantReadWriteData(apiHandler);
       apiHandler.addToRolePolicy(
         new iam.PolicyStatement({
           actions: [
-            "scheduler:CreateScheduleGroup",
-            "scheduler:ListScheduleGroups",
-            "scheduler:DeleteScheduleGroup",
+            "scheduler:ListSechedules",
+            "scheduler:CreateSchedule",
+            "scheduler:UpdateSchedule",
+            "scheduler:DeleteSchedule",
           ],
           effect: iam.Effect.ALLOW,
           resources: [
-            `arn:aws:scheduler:${cdk.Aws.REGION}:${cdk.Aws.ACCOUNT_ID}:schedule-group/GenAIRssSubscriber*`,
+            `arn:aws:scheduler:${cdk.Aws.REGION}:${cdk.Aws.ACCOUNT_ID}:schedule/${props.ragEngines.dataImport.rssIngestorScheduleGroup}/*`,
           ],
         })
       );
-      apiHandler.addToRolePolicy(
-        new iam.PolicyStatement({
-          actions: ["scheduler:CreateSchedule", "scheduler:DeleteSchedule"],
-          effect: iam.Effect.ALLOW,
-          resources: [
-            `arn:aws:scheduler:${cdk.Aws.REGION}:${cdk.Aws.ACCOUNT_ID}:schedule/GenAIRssSubscriber*`,
-          ],
-        })
-      );
-      apiHandler.addToRolePolicy(
-        new iam.PolicyStatement({
-          actions: ["scheduler:ListSechedules"],
-          effect: iam.Effect.ALLOW,
-          resources: [
-            `arn:aws:scheduler:${cdk.Aws.REGION}:${cdk.Aws.ACCOUNT_ID}:schedule/*`,
-          ],
-        })
-      );
-      if (props.ragEngines.scheduledRssIngestFunctionRoleArn) {
+      if (props.ragEngines.dataImport.scheduledRssIngestFunctionRoleArn) {
         apiHandler.addToRolePolicy(
           new iam.PolicyStatement({
             actions: ["iam:PassRole"],
             effect: iam.Effect.ALLOW,
-            resources: [props.ragEngines.scheduledRssIngestFunctionRoleArn],
+            resources: [props.ragEngines.dataImport.rssIngestorFunctionArn],
             conditions: {
               StringLike: {
                 "iam:PassedToService": "scheduler.amazonaws.com",
@@ -157,14 +151,6 @@ export class RestApi extends Construct {
           })
         );
       }
-    }
-
-    if (props.ragEngines?.workspacesTable) {
-      props.ragEngines.workspacesTable.grantReadWriteData(apiHandler);
-    }
-
-    if (props.ragEngines?.documentsTable) {
-      props.ragEngines.documentsTable.grantReadWriteData(apiHandler);
     }
 
     if (props.ragEngines?.auroraPgVector) {

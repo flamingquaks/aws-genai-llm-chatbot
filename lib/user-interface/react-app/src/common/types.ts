@@ -29,7 +29,6 @@ export interface AppConfig {
       region: string;
     };
   };
-
 }
 
 export interface NavigationPanelState {

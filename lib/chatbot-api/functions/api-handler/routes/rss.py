@@ -20,9 +20,7 @@ class RssFeedRequest(BaseModel):
 def subscribe_to_rss(workspace_id: str):
     data: dict = router.current_event.json_body
     request = RssFeedRequest(**data)   
-
     result = genai_core.rss.create_rss_subscription(workspace_id, request.rssFeedUrl,request.rssFeedTitle)
-
     return {"ok": True, "data": result}
 
 
@@ -32,15 +30,26 @@ def list_rss_subscriptions(workspace_id: str):
     result = genai_core.rss.list_rss_subscriptions(workspace_id)
     return {
         "ok": True,
-        "data": {
-            "workspaceId" : workspace_id,
-            "items": [result["Schedules"]],
-
-        },
+        "data": result,
     }
 
-@router.delete('/workspace/<workspace_id>/rss/<rss_feed_title>')
+@router.get('/workspace/<workspace_id>/rss/<feed_id>')
 @tracer.capture_method
-def delete_rss_subscription(workspace_id: str, rss_feed_title: str):
-    result = genai_core.rss.delete_rss_subscription(workspace_id, rss_feed_title)
+def list_rss_feed_posts(workspace_id: str, feed_id: str):
+    posts = genai_core.rss.list_rss_feed_posts(workspace_id, feed_id)
+    if posts is None:
+        return {"ok": True, "data": posts}
+    else:
+        return {"ok": True, "data": []}
+
+@router.get('/workspace/<workspace_id>/rss/<feed_id>/disable')
+@tracer.capture_method
+def disable_rss_subscription(workspace_id: str, feed_id: str):
+    result = genai_core.rss.disable_rss_feed_subscription(workspace_id, feed_id)
+    return {"ok": True, "data": result}
+
+@router.get('/workspace/<workspace_id>/rss/<feed_id>/enable')
+@tracer.capture_method
+def enable_rss_subscription(workspace_id: str, feed_id: str):
+    result = genai_core.rss.enable_rss_feed_subscription(workspace_id, feed_id)
     return {"ok": True, "data": result}
