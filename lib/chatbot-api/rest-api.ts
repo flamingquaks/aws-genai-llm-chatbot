@@ -106,6 +106,10 @@ export class RestApi extends Construct {
         RSS_FEED_SCHEDULE_ROLE_ARN:
           props.ragEngines?.dataImport.scheduledRssIngestFunctionRoleArn ?? "",
         RSS_FEED_TABLE: props.ragEngines?.rssFeedTable.tableName ?? "",
+        RSS_FEED_WORKSPACE_DOCUMENT_TYPE_INDEX:
+          props.ragEngines?.rssFeedWorkspaceDocumentTypesIndexName ?? "",
+        RSS_FEED_DOCUMENT_TYPE_STATUS_INDEX:
+          props.ragEngines?.rssFeedDocumentTypeStatusIndexName ?? "",
       },
     });
 

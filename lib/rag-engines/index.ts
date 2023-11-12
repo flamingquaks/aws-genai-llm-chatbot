@@ -29,6 +29,8 @@ export class RagEngines extends Construct {
   public readonly rssFeedTable: dynamodb.Table;
   public readonly workspacesByObjectTypeIndexName: string;
   public readonly documentsByCompountKeyIndexName: string;
+  public readonly rssFeedDocumentTypeStatusIndexName: string;
+  public readonly rssFeedWorkspaceDocumentTypesIndexName: string;
   public readonly fileImportWorkflow?: sfn.StateMachine;
   public readonly websiteCrawlingWorkflow?: sfn.StateMachine;
   public readonly deleteWorkspaceWorkflow?: sfn.StateMachine;
@@ -117,6 +119,10 @@ export class RagEngines extends Construct {
     this.fileImportWorkflow = dataImport.fileImportWorkflow;
     this.websiteCrawlingWorkflow = dataImport.websiteCrawlingWorkflow;
     this.deleteWorkspaceWorkflow = workspaces.deleteWorkspaceWorkflow;
+    this.rssFeedDocumentTypeStatusIndexName =
+      tables.rssFeedDocumentTypeStatusIndexName;
+    this.rssFeedWorkspaceDocumentTypesIndexName =
+      tables.rssFeedWorkspaceDocumentTypesIndexName;
     this.dataImport = dataImport;
   }
 }
