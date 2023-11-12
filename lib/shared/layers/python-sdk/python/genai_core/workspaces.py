@@ -7,7 +7,6 @@ from datetime import datetime
 
 dynamodb = boto3.resource("dynamodb")
 sfn_client = boto3.client("stepfunctions")
-scheduler = boto3.client('scheduler')
 
 WORKSPACES_TABLE_NAME = os.environ.get("WORKSPACES_TABLE_NAME")
 WORKSPACES_BY_OBJECT_TYPE_INDEX_NAME = os.environ.get(
@@ -23,8 +22,6 @@ CREATE_KENDRA_WORKSPACE_WORKFLOW_ARN = os.environ.get(
     "CREATE_KENDRA_WORKSPACE_WORKFLOW_ARN"
 )
 DELETE_WORKSPACE_WORKFLOW_ARN = os.environ.get("DELETE_WORKSPACE_WORKFLOW_ARN")
-
-RSS_SCHEDULE_GROUP_NAME = os.environ.get("RSS_SCHEDULE_GROUP_NAME")
 
 WORKSPACE_OBJECT_TYPE = "workspace"
 
@@ -156,7 +153,6 @@ def create_workspace_aurora(
     )
 
     print(response)
-    create_rss_schedule_group(workspace_id)
     return {
         "id": workspace_id,
     }
@@ -225,7 +221,6 @@ def create_workspace_open_search(
     )
 
     print(response)
-    create_rss_schedule_group(workspace_id)
     return {
         "id": workspace_id,
     }
@@ -270,7 +265,6 @@ def create_workspace_kendra(
     )
 
     print(response)
-    create_rss_schedule_group(workspace_id)
     return {
         "id": workspace_id,
     }
@@ -297,21 +291,7 @@ def delete_workspace(workspace_id: str):
             }
         ),
     )
-    delete_rss_schedule_group(workspace_id)
 
     print(response)
 
 
-def create_rss_schedule_group(workspace_id: str):
-    print(f'Creating rss schedule group for workspace {workspace_id}')
-    response = scheduler.create_schedule_group(
-        Name=f'{RSS_SCHEDULE_GROUP_NAME}.{workspace_id}'
-    )
-    print(response)
-
-def delete_rss_schedule_group(workspace_id: str):
-    print(f'Deleting rss schedule group for workspace {workspace_id}')
-    response = scheduler.delete_schedule_group(
-        Name=f'{RSS_SCHEDULE_GROUP_NAME}.{workspace_id}'
-    )
-    print(response)
