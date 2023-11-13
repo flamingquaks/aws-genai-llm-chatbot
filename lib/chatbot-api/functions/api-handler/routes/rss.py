@@ -52,8 +52,8 @@ def get_rss_subscription_details(workspace_id: str, feed_id: str):
 
 @router.get('/workspace/<workspace_id>/rss/<feed_id>/posts')
 @tracer.capture_method
-def list_rss_feed_posts(workspace_id: str, feed_id: str):
-    posts = genai_core.rss.list_posts_for_rss_feed(workspace_id, feed_id)
+def list_posts_for_rss_subscription(workspace_id: str, feed_id: str):
+    posts = genai_core.rss.list_posts_for_rss_subscription(workspace_id, feed_id)
     if posts is None:
         return {"ok": True, "data": {
             "items": []

@@ -68,7 +68,7 @@ const RSS_COLUMN_DEFINITIONS = [
     id: "title",
     header: "RSS Feed Title",
     cell: (item: DocumentItem) => (
-      <Link href={"workspaces/" + item.workspaceId + "rss/" + item.id + "/"}>
+      <Link href={item.workspaceId + "/rss/" + item.id + "/"}>
         {Utils.textEllipsis(item.title ?? "", 100)}
       </Link>
     ),
@@ -87,7 +87,7 @@ const RSS_COLUMN_DEFINITIONS = [
     header: "RSS Subscription Status",
     cell: (item: DocumentItem) => (
       <StatusIndicator type={Labels.statusTypeMap[item.status]}>
-        {Labels.statusMap[item.status]}
+        {Labels.statusMap[item.status]} {item.status.toUpperCase()}
       </StatusIndicator>
     ),
   },

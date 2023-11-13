@@ -70,31 +70,46 @@ def create_rss_subscription(workspace_id, rss_feed_url, rss_feed_title):
             }
         )
         logger.debug(scheduler_response)
+        try:
+            logger.debug(f'Attempting to start first RSS Feed Crawl')
+            lambda_client = boto3.client('lambda')
+            lambda_client.invoke(
+                FunctionName=RSS_FEED_INGESTOR_FUNCTION,
+                InvocationType='EVENT',
+                Payload=json.dumps({
+                    "workspace_id": workspace_id,
+                    "feed_id": rss_feed_id
+                })
+            )
+        except botocore.exceptions.ClientError as lambda_error:
+            logger.error(lambda_error)
+            
+
     except botocore.exceptions.ClientError as e:
         if e.response['Error']['Code'] == 'ConditionalCheckFailedException':
             logger.debug(f'RSS Subscription for workspace_id {workspace_id} and url {rss_feed_url} already exists')
         else:
             raise
 
-def disable_rss_feed_subscription(workspace_id, feed_id):
-    '''Disables scheduled subscription to RSS Feed'''
+def disable_rss_subscription(workspace_id, feed_id):
+    '''Disables scheduled subscription to RSS Subscription'''
     logger.debug(f'Disabling RSS Subscription for workspace_id {workspace_id} and feed_id {feed_id}')
-    _toggle_rss_feed_subscription(workspace_id, feed_id, 'DISABLED')
+    _toggle_rss_subscription_status(workspace_id, feed_id, 'DISABLED')
     logger.debug(f'Successfully disabled RSS Subscription for workspace_id {workspace_id} and feed_id {feed_id}')
     return {
         'status': 'success'
     }
 
-def enable_rss_feed_subscription(workspace_id, feed_id):
-    '''Enables scheduled subscription to RSS Feed'''
+def enable_rss_subscription(workspace_id, feed_id):
+    '''Enables scheduled subscription to RSS Subscription'''
     logger.debug(f'Enabling RSS Subscription for workspace_id {workspace_id} and feed_id {feed_id}')
-    _toggle_rss_feed_subscription(workspace_id, feed_id, 'ENABLED')
+    _toggle_rss_subscription_status(workspace_id, feed_id, 'ENABLED')
     logger.debug(f'Successfully enabled RSS Subscription for workspace_id {workspace_id} and feed_id {feed_id}')
     return {
         'status': 'success'
     }
 
-def _toggle_rss_feed_subscription(workspace_id, feed_id, status):
+def _toggle_rss_subscription_status(workspace_id, feed_id, status):
     logger.debug(f'Toggling RSS Subscription for workspace_id {workspace_id} and feed_id {feed_id} to {status}')
     if status.upper() == 'ENABLED' or status.upper() == 'DISABLED':
         update_item_response = dynamodb.update_item(
@@ -158,6 +173,7 @@ def list_rss_subscriptions(workspace_id):
     if subscriptions['Count'] > 0:
         return [{
             'id': subscription['feed_id']['S'],
+            'workspaceId': workspace_id,
             'path': subscription['url']['S'],
             'title': subscription['title']['S'],
             'status': subscription['status']['S']
@@ -177,6 +193,7 @@ def get_rss_subscription_details(workspace_id, feed_id):
     if dynamodb_results['Count'] > 0:
         return {
             'id': feed_id,
+            'workspaceId': workspace_id,
             'path': dynamodb_results['Items'][0]['url']['S'],
             'title': dynamodb_results['Items'][0]['title']['S'],
             'status': dynamodb_results['Items'][0]['status']['S']
@@ -184,7 +201,7 @@ def get_rss_subscription_details(workspace_id, feed_id):
     else:
         return None
 
-def list_posts_for_rss_feed(workspace_id, feed_id):
+def list_posts_for_rss_subscription(workspace_id, feed_id):
     '''Gets a list of posts that the RSS feed subscriber 
         has consumed or will consume
     '''
@@ -197,6 +214,7 @@ def list_posts_for_rss_feed(workspace_id, feed_id):
     )
     return [{
         "feed_id": feed_id,
+        "workspaceId": workspace_id,
         "id": item['post_id']['S'],
         "path": item['url']['S'],
         "title": item['title']['S'],
@@ -262,7 +280,7 @@ def _get_batch_pending_posts():
             ExpressionAttributeNames={ "#status": "status", "#document_type": "document_type" }
       )
 
-def get_rss_feed_details(workspace_id,feed_id):
+def get_rss_subscription_details(workspace_id,feed_id):
     '''Gets details about a specified RSS Feed Subscripton'''
     logger.debug(f'Getting RSS Feed Details for workspace_id {workspace_id} and feed_id {feed_id}')
     dynamodb_response = dynamodb.query(
@@ -294,7 +312,7 @@ def check_rss_feed_for_posts(workspace_id, feed_id):
 def _get_rss_feed_posts(workspace_id, feed_id):
     '''Gets RSS Feed Details & Parses the RSS Feed'''
     logger.info(f'Getting RSS Feed Posts for workspace_id {workspace_id} and feed_id {feed_id}')
-    rss_feed_url = get_rss_feed_details(workspace_id, feed_id)
+    rss_feed_url = get_rss_subscription_details(workspace_id, feed_id)
     feed_contents = feedparser.parse(rss_feed_url)
     return feed_contents['entries']
 

@@ -38,14 +38,13 @@ function App() {
               <Route path="embeddings" element={<Embeddings />} />
               <Route path="cross-encoders" element={<CrossEncoders />} />
               <Route path="semantic-search" element={<SemanticSearch />} />
-              <Route path="workspaces" element={<Workspaces />} />
-              <Route path="workspaces/create" element={<CreateWorkspace />} />
-              <Route path="workspaces/:workspaceId" element={<Workspace />} />
-              <Route
-                path="workspace/:workspaceId/rss/:feedId"
-                element={<RssFeed />}
-              />
-              <Route path="workspaces/add-data" element={<AddData />} />
+              <Route path="workspaces" element={<Workspaces />}>
+                <Route path="create" element={<CreateWorkspace />} />
+                <Route path=":workspaceId" element={<Workspace />}>
+                  <Route path="rss/:feedId" element={<RssFeed />} />
+                  <Route path="workspaces/add-data" element={<AddData />} />
+                </Route>
+              </Route>
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>

@@ -11,7 +11,7 @@ tracer = Tracer()
 @logger.inject_lambda_context(log_event=True)
 def lambda_handler(event, context: LambdaContext):    
     logger.debug('Starting scheduled RSS post ingestion')
-    genai_core.rss.batch_crawl_websites();
+    genai_core.rss.batch_crawl_websites()
 
         
         
