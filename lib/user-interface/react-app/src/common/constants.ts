@@ -40,6 +40,8 @@ export abstract class Labels {
   };
 
   static statusTypeMap: Record<string, StatusIndicatorProps.Type> = {
+    sentToCrawler: "success",
+    pending: "pending",
     submitted: "pending",
     creating: "in-progress",
     ready: "success",
@@ -51,6 +53,8 @@ export abstract class Labels {
   };
 
   static statusMap: Record<string, string> = {
+    sentToCrawler: "Sent to crawler",
+    pending: "Pending",
     submitted: "Submitted",
     creating: "Creating",
     ready: "Ready",
@@ -82,6 +86,7 @@ export abstract class Labels {
     text: "Text",
     website: "Website",
     qna: "Q&A",
+    rss: "RSS Feed",
   };
 
   static getDistanceFunctionScoreName(result: SemanticSearchResult) {

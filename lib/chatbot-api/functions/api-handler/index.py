@@ -36,6 +36,8 @@ app = APIGatewayRestResolver(
     serializer=lambda obj: json.dumps(obj, cls=genai_core.utils.json.CustomEncoder),
 )
 
+# RANDOM_#)#FJ#FJEScdsakl
+
 app.include_router(health_router)
 app.include_router(rag_router)
 app.include_router(embeddings_router)

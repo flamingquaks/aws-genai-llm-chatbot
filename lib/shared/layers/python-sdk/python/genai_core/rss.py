@@ -2,6 +2,8 @@ import os
 import boto3
 import botocore
 import uuid
+import json
+import hashlib
 from aws_lambda_powertools import Logger, Tracer
 import genai_core.documents
 import feedparser
@@ -14,67 +16,42 @@ dynamodb = boto3.client('dynamodb')
 
 RSS_SCHEDULE_GROUP_NAME = os.environ['RSS_SCHEDULE_GROUP_NAME']
 RSS_FEED_TABLE = os.environ['RSS_FEED_TABLE']
-RSS_FEED_INGESTOR_FUNCTION = os.environ['RSS_FEED_INGESTOR_FUNCTION']
-RSS_FEED_SCHEDULE_ROLE_ARN = os.environ['RSS_FEED_SCHEDULE_ROLE_ARN']
+RSS_FEED_INGESTOR_FUNCTION = os.environ['RSS_FEED_INGESTOR_FUNCTION'] if "RSS_FEED_INGESTOR_FUNCTION" in os.environ else ""
+RSS_FEED_SCHEDULE_ROLE_ARN = os.environ['RSS_FEED_SCHEDULE_ROLE_ARN'] if "RSS_FEED_SCHEDULE_ROLE_ARN" in os.environ else ""
 RSS_FEED_DOCUMENT_TYPE_STATUS_INDEX = os.environ['RSS_FEED_DOCUMENT_TYPE_STATUS_INDEX']
 RSS_FEED_WORKSPACE_DOCUMENT_TYPE_INDEX = os.environ['RSS_FEED_WORKSPACE_DOCUMENT_TYPE_INDEX']
 
 def create_rss_subscription(workspace_id, rss_feed_url, rss_feed_title):
     logger.debug(f'Creating RSS Subscription for workspace_id {workspace_id} and rss_feed_url {rss_feed_url}')
-    rss_feed_id = str(uuid.uuid4())
-    dynamodb_response = dynamodb.put_item(
-        TableName=RSS_FEED_TABLE,
-        Item={
-            '#workspace_id' : {
-                'S': ':workspace_id'
+    try:
+        rss_feed_id = str(uuid.uuid4())
+        dynamodb.put_item(
+            TableName=RSS_FEED_TABLE,
+            Item={
+                'workspace_id' : {
+                    'S': workspace_id
+                },
+                'compound_sort_key' : {
+                    'S': f'feed_id.{rss_feed_id}'
+                },
+                'feed_id': {
+                    'S': rss_feed_id
+                },
+                'url': {
+                    'S': rss_feed_url
+                },
+                'title': {
+                    'S': rss_feed_title
+                },
+                'document_type': {
+                    'S': 'feed'
+                },
+                'status': {
+                    'S': 'ENABLED'
+                }
             },
-            '#compound_sort_key' : {
-                'S': '#feed_id::feed_id'
-            },
-            '#feed_url': {
-                'S': ':feed_url'
-            },
-            '#feed_title': {
-                'S': ':feed_title'
-            },
-            '#document_type': {
-                'S': ':document_type'
-            },
-            '#status': {
-                'S': ':status'
-            }
-        },
-        ExpressionAttributeNames={
-            '#workspace_id': 'workspace_id',
-            '#compound_sort_key': 'compound_sort_key',
-            '#feed_url': 'feed_url',
-            '#feed_title': 'feed_title',
-            '#document_type': 'document_type',
-            '#status': 'status'
-        },
-        ExpressionAttributeValues={
-            ':workspace_id': {
-                'S': workspace_id
-            },
-            ':feed_id': {
-                'S': rss_feed_id
-            },
-            ':feed_url': {
-                'S': rss_feed_url
-            },
-            ':feed_title': {
-                'S': rss_feed_title
-            },
-            ':document_type': {
-                'S': 'feed'
-            },
-            ':status' : {
-                'S': 'ENABLED'
-            }
-        }
-    )
-    logger.debug(f'Created RSS Subscription for workspace_id {workspace_id} and rss_feed_url {rss_feed_url}')
-    if dynamodb_response['Attributes']:
+        )
+        logger.debug(f'Created RSS Subscription for workspace_id {workspace_id} and url {rss_feed_url}')
         logger.debug('Creating schedule for feed polling')
         scheduler_response = scheduler.create_schedule(
             ActionAfterCompletion= 'NONE',
@@ -84,7 +61,7 @@ def create_rss_subscription(workspace_id, rss_feed_url, rss_feed_title):
             ScheduleExpression='rate(1 day)',
             Target={
                 'Arn': RSS_FEED_INGESTOR_FUNCTION,
-                'Input': {'workspace_id': workspace_id, 'feed_id': rss_feed_id},
+                'Input': json.dumps({'workspace_id': workspace_id, 'feed_id': rss_feed_id}),
                 'RoleArn': RSS_FEED_SCHEDULE_ROLE_ARN
             },
             FlexibleTimeWindow={
@@ -93,6 +70,11 @@ def create_rss_subscription(workspace_id, rss_feed_url, rss_feed_title):
             }
         )
         logger.debug(scheduler_response)
+    except botocore.exceptions.ClientError as e:
+        if e.response['Error']['Code'] == 'ConditionalCheckFailedException':
+            logger.debug(f'RSS Subscription for workspace_id {workspace_id} and url {rss_feed_url} already exists')
+        else:
+            raise
 
 def disable_rss_feed_subscription(workspace_id, feed_id):
     '''Disables scheduled subscription to RSS Feed'''
@@ -122,7 +104,7 @@ def _toggle_rss_feed_subscription(workspace_id, feed_id, status):
                     'S': ':workspace_id'
                 },
                 '#compound_sort_key': {
-                    'S': '#feed_id::feed_id'
+                    'S': 'feed_id.:feed_id'
                 }
             },
             AttibuteUpdates={
@@ -175,15 +157,33 @@ def list_rss_subscriptions(workspace_id):
     logger.debug(f'Found {subscriptions["Count"]} RSS Subscriptions')
     if subscriptions['Count'] > 0:
         return [{
-            'workspace_id': subscription['workspace_id'],
-            'feed_url': subscription['feed_url'],
-            'title': subscription['title'],
-            'status': subscription['status']
+            'id': subscription['feed_id']['S'],
+            'path': subscription['url']['S'],
+            'title': subscription['title']['S'],
+            'status': subscription['status']['S']
         } for subscription in subscriptions['Items']]
     else:
         logger.debug('No RSS Subscriptions found')
         return []
-    
+def get_rss_subscription_details(workspace_id, feed_id):
+    '''Gets details about the RSS feed provided'''
+    logger.debug(f'Getting details for RSS Feed {feed_id} in workspace {workspace_id}')
+    dynamodb_results = dynamodb.query(
+        TableName=RSS_FEED_TABLE,
+        KeyConditionExpression="#workspace_id = :workspace_id and begins_with(#compound_sort_key, :feed_id_key)",
+        ExpressionAttributeValues={ ":workspace_id": { "S": workspace_id }, ":feed_id_key": { "S": f'feed_id.{feed_id}' } }, 
+        ExpressionAttributeNames={ "#workspace_id": "workspace_id", "#compound_sort_key": "compound_sort_key" }
+    )
+    if dynamodb_results['Count'] > 0:
+        return {
+            'id': feed_id,
+            'path': dynamodb_results['Items'][0]['url']['S'],
+            'title': dynamodb_results['Items'][0]['title']['S'],
+            'status': dynamodb_results['Items'][0]['status']['S']
+        }
+    else:
+        return None
+
 def list_posts_for_rss_feed(workspace_id, feed_id):
     '''Gets a list of posts that the RSS feed subscriber 
         has consumed or will consume
@@ -191,17 +191,16 @@ def list_posts_for_rss_feed(workspace_id, feed_id):
     logger.debug(f'Getting posts for RSS Feed {feed_id} in workspace {workspace_id}')
     dynamodb_results = dynamodb.query(
         TableName=RSS_FEED_TABLE,
-        KeyConditionExpression="#workspace_id = :workspace_id and begins_with(#compound_sort_key, :feed_id)",
-        ExpressionAttributeValues={ ":workspace_id": { "S": workspace_id }, ":feed_id": { "S": feed_id } }, 
+        KeyConditionExpression="#workspace_id = :workspace_id and begins_with(#compound_sort_key, :feed_id_key)",
+        ExpressionAttributeValues={ ":workspace_id": { "S": workspace_id }, ":feed_id_key": { "S": f'feed_id.{feed_id}' } }, 
         ExpressionAttributeNames={ "#workspace_id": "workspace_id", "#compound_sort_key": "compound_sort_key" }
     )
     return [{
-        "workspace_id": workspace_id,
         "feed_id": feed_id,
-        "post_id": item['post_id'],
-        "post_url": item['post_url'],
-        "post_title": item['post_title'],
-        "post_status": item['status']
+        "id": item['post_id']['S'],
+        "path": item['url']['S'],
+        "title": item['title']['S'],
+        "status": item['status']['S']
     } for item in dynamodb_results['Items']]
     
 def set_rss_post_ingested(workspace_id, feed_id, post_id):
@@ -214,7 +213,7 @@ def set_rss_post_ingested(workspace_id, feed_id, post_id):
                     'S': ':workspace_id'
                },
                '#compound_sort_key': {
-                    'S': '#feed_id::feed_id#post_id::post_id'
+                    'S': ':compound_sort_key'
                }
           },
           UpdateExpression='SET #Status = :status',
@@ -226,11 +225,8 @@ def set_rss_post_ingested(workspace_id, feed_id, post_id):
                ':status': {
                     'S': 'INGESTED'
                },
-               ':feed_id': {
-                    'S': feed_id
-               },
-               ':post_id': {
-                    'S': post_id
+               ':compound_sort_key': {
+                    'S': f'feed_id.{feed_id}.post_id.{post_id}'
                },
                ':workspace_id': {
                     'S': workspace_id
@@ -248,7 +244,7 @@ def batch_crawl_websites():
             workspace_id = post['workspace_id']['S']
             feed_id = post['feed_id']['S']
             post_id = post['post_id']['S']
-            rss_item_address = post['post_url']['S']
+            rss_item_address = post['url']['S']
             crawl_rss_feed_post(workspace_id, feed_id, post_id)
             set_rss_post_ingested(workspace_id, feed_id, post_id)
             logger.info(f'Finished sending {post_id} ({rss_item_address}) to website crawler')
@@ -271,14 +267,15 @@ def get_rss_feed_details(workspace_id,feed_id):
     logger.debug(f'Getting RSS Feed Details for workspace_id {workspace_id} and feed_id {feed_id}')
     dynamodb_response = dynamodb.query(
         TableName=RSS_FEED_TABLE,
-        KeyConditionExpression="#workspace_id = :workspace_id and #compound_sort_key = #feed_id::feed_id",
-        ExpressionAttributeValues={ ":workspace_id": { "S": workspace_id }, ":feed_id": { "S": feed_id } },
+        KeyConditionExpression="#workspace_id = :workspace_id and #compound_sort_key = :compound_sort_key",
+        ExpressionAttributeNames={ "#workspace_id": "workspace_id", "#compound_sort_key": "compound_sort_key" },
+        ExpressionAttributeValues={ ":workspace_id": { "S": workspace_id }, ":compound_sort_key": { "S": f'feed_id.{feed_id}'} },
     )
     if dynamodb_response['Count'] == 1:
         return {
             'workspace_id': dynamodb_response['Items'][0]['workspace_id']['S'],
-            'feed_id': dynamodb_response['Items'][0]['feed_id']['S'],
-            'feed_url': dynamodb_response['Items'][0]['url']['S'],
+            'id': dynamodb_response['Items'][0]['feed_id']['S'],
+            'path': dynamodb_response['Items'][0]['url']['S'],
             'title': dynamodb_response['Items'][0]['title']['S'],
             'status': dynamodb_response['Items'][0]['status']['S']
         }
@@ -305,60 +302,35 @@ def _queue_rss_feed_post_for_ingestion(workspace_id, feed_id,feed_entry):
     '''Adds RSS Feed Post to RSS Table to be picked up by scheduled crawling'''
     logger.info(f'Queueing RSS Feed Post for ingestion: {feed_entry["link"]}')
     try:
+        post_id = _get_post_id_for_url(feed_entry['link'])
         dynamodb_response = dynamodb.put_item(
             TableName=RSS_FEED_TABLE,
             Item={
-                '#workspace_id': {
-                    'S': ':workspace_id'
+                'workspace_id': {
+                    'S': workspace_id
                 },
-                '#compound_sort_key': {
-                    'S': '#feed_id::feed_id#post_id::post_id'
+                'compound_sort_key': {
+                    'S': f'feed_id.{feed_id}.post_id.{post_id}'
                 },
-                '#document_type': {
-                    'S': ':document_type'
+                'document_type': {
+                    'S': 'post'
                 },
-                '#feed_id': {
-                    'S': ':feed_id'
+                'feed_id': {
+                    'S': feed_id
                 },
-                '#post_id': {
-                    'S': ':post_id'
+                'post_id': {
+                    'S': post_id
                 },
-                '#title': {
-                    'S': 'title'
+                'title': {
+                    'S': feed_entry['title']
                 },
-                '#url': {
-                    'S': ':url'
+                'url': {
+                    'S': feed_entry['link']
                 }
             },
             ConditionExpression='attribute_not_exists(#compound_sort_key)',
             ExpressionAttributeNames={
-                '#workspace_id':'workspace_id',
                 '#compound_sort_key': 'compound_sort_key',
-                '#document_type': 'document_type',
-                '#feed_id': 'feed_id',
-                '#post_id': 'post_id',
-                '#title': 'title',
-                '#url': 'url'
-            },
-            ExpressionAttributeValues={
-                ':workspace_id': {
-                    'S': workspace_id
-                },
-                ':feed_id': {
-                    'S': feed_id
-                },
-                ':post_id': {
-                    'S': str(uuid.uuid4())
-                },
-                ':document_type': {
-                    'S': 'post'
-                },
-                ':title': {
-                    'S': feed_entry['title']
-                },
-                ':url': {
-                    'S': feed_entry['link']
-                }
             }
         )
         if dynamodb_response['Attributes']:
@@ -392,3 +364,7 @@ def crawl_rss_feed_post(workspace_id,post_url,link_limit=30):
                 "limit": link_limit,
             },
         )
+
+def _get_post_id_for_url(post_url):
+    '''Returns an Md5 has string of the post URL to use as a post ID'''
+    return str(hashlib.md5().update(post_url))

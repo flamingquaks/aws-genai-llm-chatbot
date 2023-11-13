@@ -95,7 +95,7 @@ export class WebsiteCrawlingWorkflow extends Construct {
     );
 
     const rssIngestorFunction = new lambda.Function(this, "RssIngestor", {
-      code: lambda.Code.fromAsset(
+      code: props.shared.sharedCode.bundleWithLambdaAsset(
         path.join(__dirname, "./functions/rss-ingestor")
       ),
       description:
@@ -149,7 +149,7 @@ export class WebsiteCrawlingWorkflow extends Construct {
         vpc: props.shared.vpc,
         description:
           "Functions polls the RSS items for pending urls and invokes Website crawler inference. Max of 10 URLs per invoke.",
-        code: lambda.Code.fromAsset(
+        code: props.shared.sharedCode.bundleWithLambdaAsset(
           path.join(__dirname, "./functions/batch-crawl-rss-posts")
         ),
         architecture: props.shared.lambdaArchitecture,

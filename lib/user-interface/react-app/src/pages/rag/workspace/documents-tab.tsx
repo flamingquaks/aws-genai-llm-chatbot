@@ -7,7 +7,6 @@ import {
 } from "@cloudscape-design/components";
 import { useCallback, useContext, useEffect, useState } from "react";
 import {
-  DocumentItem,
   DocumentResult,
   RagDocumentType,
   ResultValue,
@@ -71,21 +70,6 @@ export default function DocumentsTab(props: DocumentsTabProps) {
     [appContext, props.documentType, props.workspaceId]
   );
 
-  const deleteRssSubscription = useCallback(
-    async (params: { workspaceId: string; documentTitle: string }) => {
-      if (!appContext) return;
-      const apiClient = new ApiClient(appContext);
-      const result = await apiClient.rss.deleteRssFeedSubscription(
-        params.workspaceId,
-        params.documentTitle
-      );
-      if (ResultValue.ok(result)) {
-        getDocuments({});
-      }
-    },
-    [appContext, getDocuments]
-  );
-
   useEffect(() => {
     getDocuments({});
   }, [getDocuments]);
@@ -121,33 +105,6 @@ export default function DocumentsTab(props: DocumentsTabProps) {
   const typeAddStr = ragDocumentTypeToAddString(props.documentType);
   const typeTitleStr = ragDocumentTypeToTitleString(props.documentType);
   const columnDefinitions = getColumnDefinition(props.documentType);
-  if (props.documentType == "rss") {
-    let x = 0;
-    for (const columnDefinition of columnDefinitions) {
-      if (columnDefinition.id == "deleteButton") {
-        columnDefinitions[x].cell = (item: DocumentItem) => {
-          return (
-            <>
-              <Button
-                variant="link"
-                onClick={() => {
-                  if (item.title && props.workspaceId) {
-                    deleteRssSubscription({
-                      documentTitle: item.title,
-                      workspaceId: props.workspaceId,
-                    });
-                  }
-                }}
-              >
-                Delete
-              </Button>
-            </>
-          );
-        };
-      }
-      x = x++;
-    }
-  }
   return (
     <Table
       loading={loading}

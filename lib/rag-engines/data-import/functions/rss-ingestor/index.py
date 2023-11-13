@@ -7,6 +7,8 @@ import genai_core.rss
 logger = Logger()
 tracer = Tracer()
 
+#RANDOM_12w
+
 @tracer.capture_lambda_handler()
 @logger.inject_lambda_context(log_event=True)
 def lambda_handler(event, context: LambdaContext):

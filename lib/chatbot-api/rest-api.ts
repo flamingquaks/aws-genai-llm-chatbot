@@ -142,7 +142,9 @@ export class RestApi extends Construct {
           new iam.PolicyStatement({
             actions: ["iam:PassRole"],
             effect: iam.Effect.ALLOW,
-            resources: [props.ragEngines.dataImport.rssIngestorFunctionArn],
+            resources: [
+              props.ragEngines.dataImport.scheduledRssIngestFunctionRoleArn,
+            ],
             conditions: {
               StringLike: {
                 "iam:PassedToService": "scheduler.amazonaws.com",

@@ -1,4 +1,4 @@
-import { Button, StatusIndicator } from "@cloudscape-design/components";
+import { Link, StatusIndicator } from "@cloudscape-design/components";
 import { DocumentItem, RagDocumentType } from "../../../common/types";
 import { Labels } from "../../../common/constants";
 import { DateTime } from "luxon";
@@ -68,28 +68,27 @@ const RSS_COLUMN_DEFINITIONS = [
     id: "title",
     header: "RSS Feed Title",
     cell: (item: DocumentItem) => (
-      <>{Utils.textEllipsis(item.title ?? "", 100)}</>
+      <Link href={"workspaces/" + item.workspaceId + "rss/" + item.id + "/"}>
+        {Utils.textEllipsis(item.title ?? "", 100)}
+      </Link>
     ),
+    isRowHeader: true,
   },
   {
-    id: "feedUrl",
+    id: "path",
     header: "RSS Feed URL",
     cell: (item: DocumentItem) => (
       <>{Utils.textEllipsis(item.path ?? "", 100)}</>
     ),
+    isRowHeader: true,
   },
   {
-    id: "deleteButton",
-    header: "",
+    id: "status",
+    header: "RSS Subscription Status",
     cell: (item: DocumentItem) => (
-      <>
-        <Button
-          variant="link"
-          onClick={() => console.log("delete " + item.title)}
-        >
-          Delete
-        </Button>
-      </>
+      <StatusIndicator type={Labels.statusTypeMap[item.status]}>
+        {Labels.statusMap[item.status]}
+      </StatusIndicator>
     ),
   },
 ];
@@ -111,6 +110,7 @@ const QNA_COLUMN_DEFINITIONS = [
         {Labels.statusMap[item.status]}
       </StatusIndicator>
     ),
+    isRowHeader: true,
   },
   {
     id: "createdAt",
@@ -119,6 +119,7 @@ const QNA_COLUMN_DEFINITIONS = [
       DateTime.fromISO(new Date(item.createdAt).toISOString()).toLocaleString(
         DateTime.DATETIME_SHORT
       ),
+    isRowHeader: true,
   },
 ];
 

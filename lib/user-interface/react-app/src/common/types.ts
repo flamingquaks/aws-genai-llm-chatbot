@@ -127,6 +127,7 @@ export interface SessionItem {
 
 export interface DocumentItem {
   id: string;
+  workspaceId?: string;
   type: RagDocumentType;
   subType?: string;
   status: string;
@@ -137,6 +138,20 @@ export interface DocumentItem {
   subDocuments: number;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface RssPostItem {
+  id: string;
+  workspaceId: string;
+  feedId: string;
+  title: string;
+  feedUrl?: string;
+  postUrl: string;
+}
+
+export interface RssPostResult {
+  posts: RssPostItem[];
+  lastPostId?: string;
 }
 
 export interface DocumentResult {
