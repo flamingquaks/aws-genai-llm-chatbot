@@ -7,12 +7,9 @@ export class RssClient extends ApiClientBase {
   ): Promise<ApiResult<DocumentResult>> {
     try {
       const headers = await this.getHeaders();
-      const result = await fetch(
-        this.getApiUrl(`/workspaces/${workspaceId}/rss`),
-        {
-          headers,
-        }
-      );
+      const result = await fetch(this.getApiUrl(`/rss/${workspaceId}`), {
+        headers,
+      });
 
       return result.json();
     } catch (error) {
@@ -27,7 +24,7 @@ export class RssClient extends ApiClientBase {
     try {
       const headers = await this.getHeaders();
       const result = await fetch(
-        this.getApiUrl(`/workspaces/${workspaceId}/rss/${feedId}`),
+        this.getApiUrl(`/rss/${workspaceId}/${feedId}`),
         {
           headers,
         }
@@ -46,7 +43,7 @@ export class RssClient extends ApiClientBase {
     try {
       const headers = await this.getHeaders();
       const result = await fetch(
-        this.getApiUrl(`/workspaces/${workspaceId}/rss/${feedId}/posts`),
+        this.getApiUrl(`/rss/${workspaceId}/${feedId}/posts`),
         {
           headers,
         }
@@ -65,14 +62,11 @@ export class RssClient extends ApiClientBase {
   ): Promise<ApiResult<DocumentItem>> {
     try {
       const headers = await this.getHeaders();
-      const results = await fetch(
-        this.getApiUrl(`/workspaces/${workspaceId}/rss`),
-        {
-          headers: headers,
-          method: "POST",
-          body: JSON.stringify({ rssFeedUrl, rssFeedTitle }),
-        }
-      );
+      const results = await fetch(this.getApiUrl(`/rss/${workspaceId}`), {
+        headers: headers,
+        method: "POST",
+        body: JSON.stringify({ rssFeedUrl, rssFeedTitle }),
+      });
       return results.json();
     } catch (error) {
       return this.error(error);
@@ -86,7 +80,7 @@ export class RssClient extends ApiClientBase {
     try {
       const headers = await this.getHeaders();
       const results = await fetch(
-        this.getApiUrl(`/workspaces/${workspaceId}/rss/${feedId}/disable`),
+        this.getApiUrl(`/rss/${workspaceId}/${feedId}/disable`),
         {
           headers: headers,
         }
@@ -104,7 +98,7 @@ export class RssClient extends ApiClientBase {
     try {
       const headers = await this.getHeaders();
       const results = await fetch(
-        this.getApiUrl(`/workspaces/${workspaceId}/rss/${feedId}/enable`),
+        this.getApiUrl(`/rss/${workspaceId}/${feedId}/disable`),
         {
           headers: headers,
         }

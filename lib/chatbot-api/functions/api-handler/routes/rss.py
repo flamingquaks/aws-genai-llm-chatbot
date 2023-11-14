@@ -15,7 +15,7 @@ class RssFeedRequest(BaseModel):
 
 
 
-@router.post("/workspaces/<workspace_id>/rss")
+@router.post("/rss/<workspace_id>/")
 @tracer.capture_method
 def subscribe_to_rss(workspace_id: str):
     data: dict = router.current_event.json_body
@@ -26,7 +26,7 @@ def subscribe_to_rss(workspace_id: str):
     }}
 
 
-@router.get('/workspaces/<workspace_id>/rss')
+@router.get('/rss/<workspace_id>/')
 @tracer.capture_method
 def list_rss_subscriptions(workspace_id: str):
     result = genai_core.rss.list_rss_subscriptions(workspace_id)
@@ -39,7 +39,7 @@ def list_rss_subscriptions(workspace_id: str):
 
 
 
-@router.get('/workspace/<workspace_id>/rss/<feed_id>')
+@router.get('/rss/<workspace_id>/<feed_id>/')
 @tracer.capture_method
 def get_rss_subscription_details(workspace_id: str, feed_id: str):
     details = genai_core.rss.get_rss_subscription_details(workspace_id, feed_id)
@@ -50,7 +50,7 @@ def get_rss_subscription_details(workspace_id: str, feed_id: str):
         }
     }
 
-@router.get('/workspace/<workspace_id>/rss/<feed_id>/posts')
+@router.get('/rss/<workspace_id>/<feed_id>/posts')
 @tracer.capture_method
 def list_posts_for_rss_subscription(workspace_id: str, feed_id: str):
     posts = genai_core.rss.list_posts_for_rss_subscription(workspace_id, feed_id)
@@ -64,7 +64,7 @@ def list_posts_for_rss_subscription(workspace_id: str, feed_id: str):
         }}
         
 
-@router.get('/workspace/<workspace_id>/rss/<feed_id>/disable')
+@router.get('/rss/<workspace_id>/<feed_id>/disable')
 @tracer.capture_method
 def disable_rss_subscription(workspace_id: str, feed_id: str):
     result = genai_core.rss.disable_rss_feed_subscription(workspace_id, feed_id)
@@ -72,7 +72,7 @@ def disable_rss_subscription(workspace_id: str, feed_id: str):
         "items": result
     }}
 
-@router.get('/workspace/<workspace_id>/rss/<feed_id>/enable')
+@router.get('/rss/<workspace_id>/<feed_id>/enable')
 @tracer.capture_method
 def enable_rss_subscription(workspace_id: str, feed_id: str):
     result = genai_core.rss.enable_rss_feed_subscription(workspace_id, feed_id)

@@ -36,19 +36,18 @@ app = APIGatewayRestResolver(
     serializer=lambda obj: json.dumps(obj, cls=genai_core.utils.json.CustomEncoder),
 )
 
-# RANDOM_#)#FJ#FJEScdsakl
-
 app.include_router(health_router)
 app.include_router(rag_router)
 app.include_router(embeddings_router)
 app.include_router(cross_encoders_router)
 app.include_router(models_router)
+app.include_router(rss_router)
 app.include_router(workspaces_router)
 app.include_router(sessions_router)
 app.include_router(semantic_search_router)
 app.include_router(documents_router)
 app.include_router(kendra_router)
-app.include_router(rss_router)
+
 
 
 @app.exception_handler(genai_core.types.CommonError)
