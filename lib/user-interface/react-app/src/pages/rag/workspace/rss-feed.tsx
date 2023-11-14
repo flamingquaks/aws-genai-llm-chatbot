@@ -43,8 +43,10 @@ export default function RssFeed() {
     const apiClient = new ApiClient(appContext);
     const workspaceResult =
       await apiClient.workspaces.getWorkspace(workspaceId);
-    const rssSubscriptionResult = 
-      await apiClient.rss.getRssSubscriptionDetails(workspaceId,feedId);
+    const rssSubscriptionResult = await apiClient.rss.getRssSubscriptionDetails(
+      workspaceId,
+      feedId
+    );
     const rssSubscriptionPosts = await apiClient.rss.getRssSubscriptionPosts(
       workspaceId,
       feedId
