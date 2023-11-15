@@ -143,7 +143,9 @@ export default function RssFeed() {
                 <Button
                   onClick={() =>
                     toggleRssSubscription(
-                      rssSubscription?.id == "enabled" ? "disable" : "enable"
+                      rssSubscription?.status == "enabled"
+                        ? "disable"
+                        : "enable"
                     )
                   }
                 >
@@ -258,8 +260,10 @@ export default function RssFeed() {
               header={
                 <Header
                   actions={<Button iconName="refresh" onClick={getWorkspace} />}
-                  description="See what posts have been crawled from the RSS feed."
-                ></Header>
+                  description="See what posts have been sent for website crawling from the RSS feed."
+                >
+                  Posts from RSS Feed
+                </Header>
               }
             />
           </SpaceBetween>

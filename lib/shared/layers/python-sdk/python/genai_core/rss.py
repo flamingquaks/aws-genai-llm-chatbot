@@ -213,8 +213,8 @@ def get_rss_subscription_details(workspace_id, feed_id):
             'path': dynamodb_results['Items'][0]['url']['S'],
             'title': dynamodb_results['Items'][0]['title']['S'],
             'status': dynamodb_results['Items'][0]['status']['S'],
-            'createdAt': dynamodb_results['Items'][0]['created_at']['S'],
-            'updatedAt': dynamodb_results['Items'][0]['updated_at']['S']
+            'createdAt': dynamodb_results['Items'][0]['created_at']['S'] if dynamodb_results['Items'][0]['created_at'] else "",
+            'updatedAt': dynamodb_results['Items'][0]['updated_at']['S'] if dynamodb_results['Items'][0]['updated_at'] else ""
         }
     else:
         return None
@@ -244,8 +244,8 @@ def list_posts_for_rss_subscription(workspace_id, feed_id):
                     "path": item['url']['S'],
                     "title": item['title']['S'],
                     "status": item['status']['S'],
-                    "createdAt": item['created_at']['S'],
-                    "updatedAt": item['updated_at']['S']
+                    "createdAt": item['created_at']['S'] if item['created_at'] else "",
+                    "updatedAt": item['updated_at']['S'] if item['updated_at'] else ""
                 }) 
         return posts
     else:
@@ -427,6 +427,9 @@ def _queue_rss_subscription_post_for_submission(workspace_id, feed_id,feed_entry
                     'S': 'pending'
                 },
                 'created_at': {
+                    'S': timestamp
+                },
+                'updated_at': {
                     'S': timestamp
                 }
             },
