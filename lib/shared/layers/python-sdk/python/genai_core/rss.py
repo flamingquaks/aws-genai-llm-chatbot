@@ -55,10 +55,10 @@ def create_rss_subscription(workspace_id, rss_feed_url, rss_feed_title):
                     'S': 'ENABLED'
                 },
                 'created_at': {
-                    'DT': timestamp
+                    'S': timestamp
                 },
                 'updated_at' : {
-                    'DT': timestamp
+                    'S': timestamp
                 }
             },
         )
@@ -213,8 +213,8 @@ def get_rss_subscription_details(workspace_id, feed_id):
             'path': dynamodb_results['Items'][0]['url']['S'],
             'title': dynamodb_results['Items'][0]['title']['S'],
             'status': dynamodb_results['Items'][0]['status']['S'],
-            'createdAt': dynamodb_results['Items'][0]['created_at']['DT'],
-            'updatedAt': dynamodb_results['Items'][0]['updated_at']['DT']
+            'createdAt': dynamodb_results['Items'][0]['created_at']['S'],
+            'updatedAt': dynamodb_results['Items'][0]['updated_at']['S']
         }
     else:
         return None
@@ -236,7 +236,7 @@ def list_posts_for_rss_subscription(workspace_id, feed_id):
         logger.info(f'{dynamodb_results["Count"]} posts found for {feed_id} in {workspace_id} workspace.')
         logger.debug(dynamodb_results['Items'])
         for item in dynamodb_results['Items']:
-            if item['document_type'] == 'post':
+            if item['document_type']['S'] == 'post':
                 posts.append({
                     "feed_id": feed_id,
                     "workspaceId": workspace_id,
@@ -244,8 +244,8 @@ def list_posts_for_rss_subscription(workspace_id, feed_id):
                     "path": item['url']['S'],
                     "title": item['title']['S'],
                     "status": item['status']['S'],
-                    "createdAt": item['created_at']['DT'],
-                    "updatedAt": item['updated_at']['DT']
+                    "createdAt": item['created_at']['S'],
+                    "updatedAt": item['updated_at']['S']
                 }) 
         return posts
     else:
@@ -283,7 +283,7 @@ def set_rss_post_submitted(workspace_id, feed_id, post_id):
                     'S': workspace_id
                },
                ':updated_at': {
-                   'DT': timestamp
+                   'S': timestamp
                }
           }
      )
@@ -348,6 +348,40 @@ def check_rss_feed_for_posts(workspace_id, feed_id):
             logger.info(f'Queued RSS Feed Post for ingestion: {feed_entry["link"]}')
     else:
         logger.info(f'No RSS Feed Posts found for workspace_id {workspace_id} and feed_id {feed_id}')
+    
+    logger.info(f'Marking RSS Feed ID {feed_id} as updated at {timestamp}')
+    # Update RSS Feed Subscription to set updated_at date
+    dynamodb.update_item(
+        TableName=RSS_FEED_TABLE,
+        Key={
+            '#workspace_id': ':workspace_id',
+            '#compound_sort_key': ':compound_sort_key'
+        },
+        ConditionExpression='#document_type = :document_type',
+        UpdateExpression={
+            'SET #updated_at = :updated_at'
+        },
+        ExpressionAttributeNames={
+            "#workspace_id": "workspace_id",
+            "#compound_sort_key": "compound_sort_key",
+            "#document_type": "document_type",
+            "#updated_at": "updated_at"
+        },
+        ExpressionAttributeValues={
+            ":workspace_id": {
+                'S': workspace_id
+            },
+            ':compound_sort_key': {
+                'S': f'feed_id.{feed_id}'
+            },
+            ':document_type': {
+                'S': 'feed'
+            },
+            ':updated_at': {
+                'S': timestamp
+            }
+        }
+    )
 
 def _get_rss_feed_posts(workspace_id, feed_id):
     '''Gets RSS Feed Details & Parses the RSS Feed'''
@@ -392,8 +426,8 @@ def _queue_rss_subscription_post_for_submission(workspace_id, feed_id,feed_entry
                 'status': {
                     'S': 'pending'
                 },
-                'added': {
-                    'DT': timestamp
+                'created_at': {
+                    'S': timestamp
                 }
             },
             ConditionExpression='attribute_not_exists(#compound_sort_key)',
@@ -401,7 +435,6 @@ def _queue_rss_subscription_post_for_submission(workspace_id, feed_id,feed_entry
                 '#compound_sort_key': 'compound_sort_key',
             }
         )
-        logger.debug(dynamodb_response)
         if dynamodb_response['Attributes']:
             logger.info(f'Successfully added RSS Feed Post to DynamoDB Table')
             logger.info(f'RSS Feed Post: {dynamodb_response["Attributes"]}')
