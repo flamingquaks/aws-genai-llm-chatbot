@@ -181,6 +181,7 @@ export class WebsiteCrawlingWorkflow extends Construct {
           OPEN_SEARCH_COLLECTION_ENDPOINT:
             props.openSearchVector?.openSearchCollectionEndpoint ?? "",
           RSS_FEED_TABLE: props.ragDynamoDBTables.rssFeedTable.tableName,
+          RSS_SCHEDULE_GROUP_NAME: this.rssIngestorScheduleGroup,
           RSS_FEED_DOCUMENT_TYPE_INDEX:
             props.ragDynamoDBTables.rssFeedDocumentTypeStatusIndexName,
         },

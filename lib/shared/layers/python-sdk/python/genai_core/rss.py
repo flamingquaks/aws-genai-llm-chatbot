@@ -18,12 +18,12 @@ dynamodb = boto3.client('dynamodb')
 
 timestamp = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%fZ")
 
-RSS_SCHEDULE_GROUP_NAME = os.environ['RSS_SCHEDULE_GROUP_NAME']
-RSS_FEED_TABLE = os.environ['RSS_FEED_TABLE']
+RSS_SCHEDULE_GROUP_NAME = os.environ['RSS_SCHEDULE_GROUP_NAME'] if "RSS_SCHEDULE_GROUP_NAME" in os.environ else ""
+RSS_FEED_TABLE = os.environ['RSS_FEED_TABLE'] if "RSS_FEED_TABLE" in os.environ else ""
 RSS_FEED_INGESTOR_FUNCTION = os.environ['RSS_FEED_INGESTOR_FUNCTION'] if "RSS_FEED_INGESTOR_FUNCTION" in os.environ else ""
 RSS_FEED_SCHEDULE_ROLE_ARN = os.environ['RSS_FEED_SCHEDULE_ROLE_ARN'] if "RSS_FEED_SCHEDULE_ROLE_ARN" in os.environ else ""
-RSS_FEED_DOCUMENT_TYPE_STATUS_INDEX = os.environ['RSS_FEED_DOCUMENT_TYPE_STATUS_INDEX']
-RSS_FEED_WORKSPACE_DOCUMENT_TYPE_INDEX = os.environ['RSS_FEED_WORKSPACE_DOCUMENT_TYPE_INDEX']
+RSS_FEED_DOCUMENT_TYPE_STATUS_INDEX = os.environ['RSS_FEED_DOCUMENT_TYPE_STATUS_INDEX'] if "RSS_FEED_DOCUMENT_TYPE_STATUS_INDEX" in os.environ else ""
+RSS_FEED_WORKSPACE_DOCUMENT_TYPE_INDEX = os.environ['RSS_FEED_WORKSPACE_DOCUMENT_TYPE_INDEX'] if "RSS_FEED_WORKSPACE_DOCUMENT_TYPE_INDEX" in os.environ else ""
 
 @tracer.capture_method
 def create_rss_subscription(workspace_id, rss_feed_url, rss_feed_title):
@@ -213,8 +213,8 @@ def get_rss_subscription_details(workspace_id, feed_id):
             'path': dynamodb_results['Items'][0]['url']['S'],
             'title': dynamodb_results['Items'][0]['title']['S'],
             'status': dynamodb_results['Items'][0]['status']['S'],
-            'createdAt': dynamodb_results['Items'][0]['created_at']['S'] if dynamodb_results['Items'][0]['created_at'] else "",
-            'updatedAt': dynamodb_results['Items'][0]['updated_at']['S'] if dynamodb_results['Items'][0]['updated_at'] else ""
+            'createdAt': dynamodb_results['Items'][0]['created_at']['S'] if "created_at" in dynamodb_results['Items'][0] else "",
+            'updatedAt': dynamodb_results['Items'][0]['updated_at']['S'] if "updated_at" in dynamodb_results['Items'][0] else ""
         }
     else:
         return None
@@ -244,8 +244,8 @@ def list_posts_for_rss_subscription(workspace_id, feed_id):
                     "path": item['url']['S'],
                     "title": item['title']['S'],
                     "status": item['status']['S'],
-                    "createdAt": item['created_at']['S'] if item['created_at'] else "",
-                    "updatedAt": item['updated_at']['S'] if item['updated_at'] else ""
+                    "createdAt": item['created_at']['S'] if "created_at" in item else "",
+                    "updatedAt": item['updated_at']['S'] if "updated_at" in item else ""
                 }) 
         return posts
     else:

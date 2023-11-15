@@ -140,7 +140,6 @@ export interface DocumentItem {
   updatedAt: string;
 }
 
-
 export interface DocumentResult {
   items: DocumentItem[];
   lastDocumentId?: string;
