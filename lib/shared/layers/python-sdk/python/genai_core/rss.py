@@ -303,6 +303,8 @@ def batch_crawl_websites():
             crawl_rss_feed_post(workspace_id, feed_id, post_id)
             set_rss_post_submitted(workspace_id, feed_id, post_id)
             logger.info(f'Finished sending {post_id} ({rss_item_address}) to website crawler')
+    else:
+        logger.info(f'No pending posts found')
 
 @tracer.capture_method
 def _get_batch_pending_posts():
@@ -314,7 +316,7 @@ def _get_batch_pending_posts():
             IndexName=RSS_FEED_DOCUMENT_TYPE_STATUS_INDEX,
             Limit=10,
             KeyConditionExpression="#status = :status and #document_type = :document_type",
-            ExpressionAttributeValues={ ":status": { "S": "PENDING" }, ":document_type": { "S": "post" } }, 
+            ExpressionAttributeValues={ ":status": { "S": "pending" }, ":document_type": { "S": "post" } }, 
             ExpressionAttributeNames={ "#status": "status", "#document_type": "document_type" }
       )
 

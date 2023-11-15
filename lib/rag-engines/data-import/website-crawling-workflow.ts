@@ -182,8 +182,10 @@ export class WebsiteCrawlingWorkflow extends Construct {
             props.openSearchVector?.openSearchCollectionEndpoint ?? "",
           RSS_FEED_TABLE: props.ragDynamoDBTables.rssFeedTable.tableName,
           RSS_SCHEDULE_GROUP_NAME: this.rssIngestorScheduleGroup,
-          RSS_FEED_DOCUMENT_TYPE_INDEX:
+          RSS_FEED_DOCUMENT_TYPE_STATUS_INDEX:
             props.ragDynamoDBTables.rssFeedDocumentTypeStatusIndexName,
+          RSS_FEED_WORKSPACE_DOCUMENT_TYPE_INDEX:
+            props.ragDynamoDBTables.rssFeedWorkspaceDocumentTypesIndexName,
         },
       }
     );
