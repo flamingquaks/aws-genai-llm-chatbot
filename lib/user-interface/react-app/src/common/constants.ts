@@ -40,7 +40,7 @@ export abstract class Labels {
   };
 
   static statusTypeMap: Record<string, StatusIndicatorProps.Type> = {
-    sentToCrawler: "success",
+    unknown: "warning",
     pending: "pending",
     submitted: "pending",
     creating: "in-progress",
@@ -50,10 +50,12 @@ export abstract class Labels {
     processed: "success",
     deleting: "in-progress",
     error: "error",
+    disabled: "stopped",
+    enabled: "success",
   };
 
   static statusMap: Record<string, string> = {
-    sentToCrawler: "Sent to crawler",
+    unknown: "Unknown",
     pending: "Pending",
     submitted: "Submitted",
     creating: "Creating",
@@ -63,6 +65,8 @@ export abstract class Labels {
     processed: "Processed",
     deleting: "Deleting",
     error: "Error",
+    disabled: "Disabled",
+    enabled: "Enabled",
   };
 
   static distainceFunctionScoreMapAurora: Record<string, string> = {

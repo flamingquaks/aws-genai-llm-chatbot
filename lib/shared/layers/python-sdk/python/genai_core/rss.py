@@ -7,12 +7,16 @@ import hashlib
 from aws_lambda_powertools import Logger, Tracer
 import genai_core.documents
 import feedparser
+from datetime import datetime
+
 
 logger = Logger()
 tracer = Tracer()
 
 scheduler = boto3.client('scheduler')
 dynamodb = boto3.client('dynamodb')
+
+timestamp = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%fZ")
 
 RSS_SCHEDULE_GROUP_NAME = os.environ['RSS_SCHEDULE_GROUP_NAME']
 RSS_FEED_TABLE = os.environ['RSS_FEED_TABLE']
@@ -21,11 +25,11 @@ RSS_FEED_SCHEDULE_ROLE_ARN = os.environ['RSS_FEED_SCHEDULE_ROLE_ARN'] if "RSS_FE
 RSS_FEED_DOCUMENT_TYPE_STATUS_INDEX = os.environ['RSS_FEED_DOCUMENT_TYPE_STATUS_INDEX']
 RSS_FEED_WORKSPACE_DOCUMENT_TYPE_INDEX = os.environ['RSS_FEED_WORKSPACE_DOCUMENT_TYPE_INDEX']
 
-
+@tracer.capture_method
 def create_rss_subscription(workspace_id, rss_feed_url, rss_feed_title):
-    logger.debug(f'Creating RSS Subscription for workspace_id {workspace_id} and rss_feed_url {rss_feed_url}')
+    logger.info(f'Creating RSS Subscription for workspace_id {workspace_id} and rss_feed_url {rss_feed_url}')
     try:
-        rss_feed_id = str(uuid.uuid4())
+        rss_feed_id = _get_id_for_url(rss_feed_url)
         dynamodb.put_item(
             TableName=RSS_FEED_TABLE,
             Item={
@@ -49,11 +53,17 @@ def create_rss_subscription(workspace_id, rss_feed_url, rss_feed_title):
                 },
                 'status': {
                     'S': 'ENABLED'
+                },
+                'created_at': {
+                    'DT': timestamp
+                },
+                'updated_at' : {
+                    'DT': timestamp
                 }
             },
         )
-        logger.debug(f'Created RSS Subscription for workspace_id {workspace_id} and url {rss_feed_url}')
-        logger.debug('Creating schedule for feed polling')
+        logger.info(f'Created RSS Subscription for workspace_id {workspace_id} and url {rss_feed_url}')
+        logger.info('Creating schedule for feed polling')
         scheduler_response = scheduler.create_schedule(
             ActionAfterCompletion= 'NONE',
             Name=rss_feed_id,
@@ -73,7 +83,7 @@ def create_rss_subscription(workspace_id, rss_feed_url, rss_feed_title):
         )
         logger.debug(scheduler_response)
         try:
-            logger.debug(f'Attempting to start first RSS Feed Crawl')
+            logger.info(f'Attempting to start first RSS Feed Crawl')
             lambda_client = boto3.client('lambda')
             lambda_client.invoke(
                 FunctionName=RSS_FEED_INGESTOR_FUNCTION,
@@ -89,31 +99,33 @@ def create_rss_subscription(workspace_id, rss_feed_url, rss_feed_title):
 
     except botocore.exceptions.ClientError as e:
         if e.response['Error']['Code'] == 'ConditionalCheckFailedException':
-            logger.debug(f'RSS Subscription for workspace_id {workspace_id} and url {rss_feed_url} already exists')
+            logger.info(f'RSS Subscription for workspace_id {workspace_id} and url {rss_feed_url} already exists')
         else:
             raise
 
+@tracer.capture_method
 def disable_rss_subscription(workspace_id, feed_id):
     '''Disables scheduled subscription to RSS Subscription'''
-    logger.debug(f'Disabling RSS Subscription for workspace_id {workspace_id} and feed_id {feed_id}')
+    logger.info(f'Disabling RSS Subscription for workspace_id {workspace_id} and feed_id {feed_id}')
     _toggle_rss_subscription_status(workspace_id, feed_id, 'DISABLED')
-    logger.debug(f'Successfully disabled RSS Subscription for workspace_id {workspace_id} and feed_id {feed_id}')
+    logger.info(f'Successfully disabled RSS Subscription for workspace_id {workspace_id} and feed_id {feed_id}')
     return {
         'status': 'success'
     }
 
+@tracer.capture_method
 def enable_rss_subscription(workspace_id, feed_id):
     '''Enables scheduled subscription to RSS Subscription'''
-    logger.debug(f'Enabling RSS Subscription for workspace_id {workspace_id} and feed_id {feed_id}')
+    logger.info(f'Enabling RSS Subscription for workspace_id {workspace_id} and feed_id {feed_id}')
     _toggle_rss_subscription_status(workspace_id, feed_id, 'ENABLED')
-    logger.debug(f'Successfully enabled RSS Subscription for workspace_id {workspace_id} and feed_id {feed_id}')
+    logger.info(f'Successfully enabled RSS Subscription for workspace_id {workspace_id} and feed_id {feed_id}')
     return {
         'status': 'success'
     }
 
 def _toggle_rss_subscription_status(workspace_id, feed_id, status):
-    logger.debug(f'Toggling RSS Subscription for workspace_id {workspace_id} and feed_id {feed_id} to {status}')
-    if status.upper() == 'ENABLED' or status.upper() == 'DISABLED':
+    logger.info(f'Toggling RSS Subscription for workspace_id {workspace_id} and feed_id {feed_id} to {status}')
+    if status.lower() == 'enabled' or status.lower() == 'disabled':
         update_item_response = dynamodb.update_item(
             TableName=RSS_FEED_TABLE,
             Key={
@@ -121,7 +133,7 @@ def _toggle_rss_subscription_status(workspace_id, feed_id, status):
                     'S': ':workspace_id'
                 },
                 '#compound_sort_key': {
-                    'S': 'feed_id.:feed_id'
+                    'S': ':feed_id_key'
                 }
             },
             AttibuteUpdates={
@@ -138,32 +150,32 @@ def _toggle_rss_subscription_status(workspace_id, feed_id, status):
                 ':workspace_id': {
                     'S': workspace_id
                 },
-                ':feed_id': {
-                    'S': feed_id
+                ":feed_id_key": {
+                     "S": f'feed_id.{feed_id}' 
                 },
                 ':status': {
-                    'S': status
+                    'S': status.lower()
                 }
             }
         )
         if update_item_response['Attributes']:
-            logger.debug(f'Updated status for {feed_id} to {status} in DynamoDB')
-            logger.debug(f'Updating scheduler status for {feed_id} to {status}')
+            logger.info(f'Updated status for {feed_id} to {status} in DynamoDB')
+            logger.info(f'Updating scheduler status for {feed_id} to {status}')
             scheduler_response = scheduler.update_schedule(
                 Name=feed_id,
                 GroupName=RSS_SCHEDULE_GROUP_NAME,
                 State=status.upper()
             )
             if scheduler_response['ScheduleArn']:
-                logger.debug(f'Successfully set schedule to {status} for {feed_id}')
+                logger.info(f'Successfully set schedule to {status.lower()} for {feed_id}')
     else:
         logger.error(f'Invalid status update for RSS Subscription')
 
 
-
+@tracer.capture_method
 def list_rss_subscriptions(workspace_id):
     '''Provides list of RSS Feed subscriptions for a given workspace'''
-    logger.debug(f'Getting RSS Subscriptions for workspace_id {workspace_id}')
+    logger.info(f'Getting RSS Subscriptions for workspace_id {workspace_id}')
     subscriptions = dynamodb.query(
             TableName=RSS_FEED_TABLE,
             IndexName=RSS_FEED_WORKSPACE_DOCUMENT_TYPE_INDEX,
@@ -183,7 +195,8 @@ def list_rss_subscriptions(workspace_id):
     else:
         logger.debug('No RSS Subscriptions found')
         return []
-    
+
+@tracer.capture_method    
 def get_rss_subscription_details(workspace_id, feed_id):
     '''Gets details about the RSS feed provided'''
     logger.debug(f'Getting details for RSS Feed {feed_id} in workspace {workspace_id}')
@@ -199,11 +212,14 @@ def get_rss_subscription_details(workspace_id, feed_id):
             'workspaceId': workspace_id,
             'path': dynamodb_results['Items'][0]['url']['S'],
             'title': dynamodb_results['Items'][0]['title']['S'],
-            'status': dynamodb_results['Items'][0]['status']['S']
+            'status': dynamodb_results['Items'][0]['status']['S'],
+            'createdAt': dynamodb_results['Items'][0]['created_at']['DT'],
+            'updatedAt': dynamodb_results['Items'][0]['updated_at']['DT']
         }
     else:
         return None
 
+@tracer.capture_method
 def list_posts_for_rss_subscription(workspace_id, feed_id):
     '''Gets a list of posts that the RSS feed subscriber 
         has consumed or will consume
@@ -215,17 +231,29 @@ def list_posts_for_rss_subscription(workspace_id, feed_id):
         ExpressionAttributeValues={ ":workspace_id": { "S": workspace_id }, ":feed_id_key": { "S": f'feed_id.{feed_id}' } }, 
         ExpressionAttributeNames={ "#workspace_id": "workspace_id", "#compound_sort_key": "compound_sort_key" }
     )
-    return [{
-        "feed_id": feed_id,
-        "workspaceId": workspace_id,
-        "id": item['post_id']['S'],
-        "path": item['url']['S'],
-        "title": item['title']['S'],
-        "status": item['status']['S']
-    } for item in dynamodb_results['Items']]
+    if dynamodb_results['Count'] > 0:
+        posts = []
+        logger.info(f'{dynamodb_results["Count"]} posts found for {feed_id} in {workspace_id} workspace.')
+        logger.debug(dynamodb_results['Items'])
+        for item in dynamodb_results['Items']:
+            if item['document_type'] == 'post':
+                posts.append({
+                    "feed_id": feed_id,
+                    "workspaceId": workspace_id,
+                    "id": item['post_id']['S'],
+                    "path": item['url']['S'],
+                    "title": item['title']['S'],
+                    "status": item['status']['S'],
+                    "createdAt": item['created_at']['DT'],
+                    "updatedAt": item['updated_at']['DT']
+                }) 
+        return posts
+    else:
+        return []
     
-def set_rss_post_ingested(workspace_id, feed_id, post_id):
-     '''Sets an RSS Feed Post as Ingested'''
+@tracer.capture_method
+def set_rss_post_submitted(workspace_id, feed_id, post_id):
+     '''Sets an RSS Feed Post as Submitted'''
      logger.info(f'Setting {post_id} as Ingested')
      return dynamodb.update_item(
           TableName=RSS_FEED_TABLE,
@@ -237,39 +265,46 @@ def set_rss_post_ingested(workspace_id, feed_id, post_id):
                     'S': ':compound_sort_key'
                }
           },
-          UpdateExpression='SET #Status = :status',
+          UpdateExpression='SET #status = :status, #updated_at = :updated_at',
           ExpressionAttributeNames={
                '#workspace_id': 'workspace_id',
-               '#compound_sort_key': 'compound_sort_key'
+               '#compound_sort_key': 'compound_sort_key',
+               '#status': 'status',
+               '#updated_at': 'updated_at'
           },
           ExpressionAttributeValues={
                ':status': {
-                    'S': 'INGESTED'
+                    'S': 'processed'
                },
                ':compound_sort_key': {
                     'S': f'feed_id.{feed_id}.post_id.{post_id}'
                },
                ':workspace_id': {
                     'S': workspace_id
+               },
+               ':updated_at': {
+                   'DT': timestamp
                }
           }
      )
 
+@tracer.capture_method
 def batch_crawl_websites():
     '''Gets next 10 pending posts and sends them to be website crawled
     '''
     posts = _get_batch_pending_posts()
     if posts['Count'] > 0:
-        logger.debug(f'Found {posts["Count"]} pending posts')
+        logger.info(f'Found {posts["Count"]} pending posts')
         for post in posts['Items']:
             workspace_id = post['workspace_id']['S']
             feed_id = post['feed_id']['S']
             post_id = post['post_id']['S']
             rss_item_address = post['url']['S']
             crawl_rss_feed_post(workspace_id, feed_id, post_id)
-            set_rss_post_ingested(workspace_id, feed_id, post_id)
+            set_rss_post_submitted(workspace_id, feed_id, post_id)
             logger.info(f'Finished sending {post_id} ({rss_item_address}) to website crawler')
 
+@tracer.capture_method
 def _get_batch_pending_posts():
       '''Gets the first 10 Pending Posts from the RSS Feed to Crawl
       '''
@@ -283,9 +318,10 @@ def _get_batch_pending_posts():
             ExpressionAttributeNames={ "#status": "status", "#document_type": "document_type" }
       )
 
+@tracer.capture_method
 def get_rss_subscription_details(workspace_id,feed_id):
     '''Gets details about a specified RSS Feed Subscripton'''
-    logger.debug(f'Getting RSS Feed Details for workspace_id {workspace_id} and feed_id {feed_id}')
+    logger.info(f'Getting RSS Feed Details for workspace_id {workspace_id} and feed_id {feed_id}')
     dynamodb_response = dynamodb.query(
         TableName=RSS_FEED_TABLE,
         KeyConditionExpression="#workspace_id = :workspace_id and #compound_sort_key = :compound_sort_key",
@@ -294,20 +330,21 @@ def get_rss_subscription_details(workspace_id,feed_id):
     )
     if dynamodb_response['Count'] == 1:
         return {
-            'workspace_id': dynamodb_response['Items'][0]['workspace_id']['S'],
+            'workspaceId': dynamodb_response['Items'][0]['workspace_id']['S'],
             'id': dynamodb_response['Items'][0]['feed_id']['S'],
             'path': dynamodb_response['Items'][0]['url']['S'],
             'title': dynamodb_response['Items'][0]['title']['S'],
             'status': dynamodb_response['Items'][0]['status']['S']
         }
 
+@tracer.capture_method
 def check_rss_feed_for_posts(workspace_id, feed_id):
     '''Checks if there are any new RSS Feed Posts'''
     logger.info(f'Checking RSS Feed for new posts for workspace_id {workspace_id} and feed_id {feed_id}')
     feed_contents = _get_rss_feed_posts(workspace_id, feed_id)
     if feed_contents:
         for feed_entry in feed_contents:
-            _queue_rss_feed_post_for_ingestion(workspace_id, feed_id, feed_entry)
+            _queue_rss_subscription_post_for_submission(workspace_id, feed_id, feed_entry)
             logger.info(f'Queued RSS Feed Post for ingestion: {feed_entry["link"]}')
     else:
         logger.info(f'No RSS Feed Posts found for workspace_id {workspace_id} and feed_id {feed_id}')
@@ -315,15 +352,19 @@ def check_rss_feed_for_posts(workspace_id, feed_id):
 def _get_rss_feed_posts(workspace_id, feed_id):
     '''Gets RSS Feed Details & Parses the RSS Feed'''
     logger.info(f'Getting RSS Feed Posts for workspace_id {workspace_id} and feed_id {feed_id}')
-    rss_feed_url = get_rss_subscription_details(workspace_id, feed_id)
+    rss_subscription_details = get_rss_subscription_details(workspace_id, feed_id)
+    if rss_subscription_details is None:
+        return
+    
+    rss_feed_url = rss_subscription_details['path']
     feed_contents = feedparser.parse(rss_feed_url)
     return feed_contents['entries']
 
-def _queue_rss_feed_post_for_ingestion(workspace_id, feed_id,feed_entry):
-    '''Adds RSS Feed Post to RSS Table to be picked up by scheduled crawling'''
+def _queue_rss_subscription_post_for_submission(workspace_id, feed_id,feed_entry):
+    '''Adds RSS Subscription Post to RSS Table to be picked up by scheduled crawling'''
     logger.info(f'Queueing RSS Feed Post for ingestion: {feed_entry["link"]}')
     try:
-        post_id = _get_post_id_for_url(feed_entry['link'])
+        post_id = _get_id_for_url(feed_entry['link'])
         dynamodb_response = dynamodb.put_item(
             TableName=RSS_FEED_TABLE,
             Item={
@@ -347,6 +388,12 @@ def _queue_rss_feed_post_for_ingestion(workspace_id, feed_id,feed_entry):
                 },
                 'url': {
                     'S': feed_entry['link']
+                },
+                'status': {
+                    'S': 'pending'
+                },
+                'added': {
+                    'DT': timestamp
                 }
             },
             ConditionExpression='attribute_not_exists(#compound_sort_key)',
@@ -354,6 +401,7 @@ def _queue_rss_feed_post_for_ingestion(workspace_id, feed_id,feed_entry):
                 '#compound_sort_key': 'compound_sort_key',
             }
         )
+        logger.debug(dynamodb_response)
         if dynamodb_response['Attributes']:
             logger.info(f'Successfully added RSS Feed Post to DynamoDB Table')
             logger.info(f'RSS Feed Post: {dynamodb_response["Attributes"]}')
@@ -409,10 +457,8 @@ def _delete_workspace_rss_subscription_posts(workspace_id):
                     RSS_FEED_TABLE: delete_items
                 }
             )
-            
-
-    
-    
+              
+@tracer.capture_method    
 def delete_workspace_subscriptions(workspace_id):
     '''Deletes all RSS Feed Subscriptions for a Workspace'''
     logger.info(f'Deleting RSS Feed Subscriptions for workspace_id {workspace_id}')
@@ -452,7 +498,7 @@ def delete_workspace_subscriptions(workspace_id):
     else:
         logger.info(f'No RSS Feed Subscriptions found for workspace_id {workspace_id}')
     
-
+@tracer.capture_method
 def crawl_rss_feed_post(workspace_id,post_url,link_limit=30):
     '''Creates a Website Crawling Document for the Post from the RSS Feeds'''
     logger.info(f'Starting to crawl RSS Feed post')
@@ -471,6 +517,9 @@ def crawl_rss_feed_post(workspace_id,post_url,link_limit=30):
             },
         )
 
-def _get_post_id_for_url(post_url):
+@tracer.capture_method
+def _get_id_for_url(post_url):
     '''Returns an Md5 has string of the post URL to use as a post ID'''
-    return str(hashlib.md5().update(post_url))
+    m = hashlib.md5()
+    m.update(post_url.encode('utf-8'))
+    return str(m.hexdigest())

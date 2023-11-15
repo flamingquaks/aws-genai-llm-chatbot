@@ -20,7 +20,7 @@ export class RssClient extends ApiClientBase {
   async getRssSubscriptionDetails(
     workspaceId: string,
     feedId: string
-  ): Promise<ApiResult<DocumentItem>> {
+  ): Promise<ApiResult<DocumentItem | null>> {
     try {
       const headers = await this.getHeaders();
       const result = await fetch(
@@ -76,7 +76,7 @@ export class RssClient extends ApiClientBase {
   async disableRssSubscription(
     workspaceId: string,
     feedId: string
-  ): Promise<ApiResult<DocumentResult>> {
+  ): Promise<ApiResult<DocumentItem>> {
     try {
       const headers = await this.getHeaders();
       const results = await fetch(
@@ -94,7 +94,7 @@ export class RssClient extends ApiClientBase {
   async enableRssSubscription(
     workspaceId: string,
     feedId: string
-  ): Promise<ApiResult<DocumentResult>> {
+  ): Promise<ApiResult<DocumentItem>> {
     try {
       const headers = await this.getHeaders();
       const results = await fetch(

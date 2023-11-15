@@ -87,7 +87,7 @@ const RSS_COLUMN_DEFINITIONS = [
     header: "RSS Subscription Status",
     cell: (item: DocumentItem) => (
       <StatusIndicator type={Labels.statusTypeMap[item.status]}>
-        {Labels.statusMap[item.status]} {item.status.toUpperCase()}
+        {Labels.statusMap[item.status]}
       </StatusIndicator>
     ),
   },

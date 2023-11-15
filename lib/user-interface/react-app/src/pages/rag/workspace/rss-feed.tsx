@@ -23,6 +23,8 @@ import {
 import { AppContext } from "../../../common/app-context";
 import { ApiClient } from "../../../common/api-client/api-client";
 import { CHATBOT_NAME, Labels } from "../../../common/constants";
+import { TableEmptyState } from "../../../components/table-empty-state";
+import { DateTime } from "luxon";
 
 export default function RssFeed() {
   const appContext = useContext(AppContext);
@@ -70,6 +72,34 @@ export default function RssFeed() {
     }
   }, [appContext, navigate, workspaceId, feedId]);
 
+  const toggleRssSubscription = useCallback(
+    async (toState: string) => {
+      if (!appContext || !workspaceId || !feedId) return;
+      if (toState.toLowerCase() == "disabled") {
+        const apiClient = new ApiClient(appContext);
+        const result = await apiClient.rss.disableRssSubscription(
+          workspaceId,
+          feedId
+        );
+        if (ResultValue.ok(result)) {
+          setRssSubscription(result.data);
+        }
+      } else if (toState.toLowerCase() == "enabled") {
+        const apiClient = new ApiClient(appContext);
+        const result = await apiClient.rss.enableRssSubscription(
+          workspaceId,
+          feedId
+        );
+        if (ResultValue.ok(result)) {
+          setRssSubscription(result.data);
+        }
+      }
+      setLoading(true);
+      getWorkspace();
+    },
+    [appContext, workspaceId, feedId, getWorkspace]
+  );
+
   useEffect(() => {
     getWorkspace();
   }, [getWorkspace]);
@@ -109,7 +139,17 @@ export default function RssFeed() {
           header={
             <Header
               variant="h1"
-              actions={<Button>Toggle RSS Feed Subscription</Button>}
+              actions={
+                <Button
+                  onClick={() =>
+                    toggleRssSubscription(
+                      rssSubscription?.id == "enabled" ? "disable" : "enable"
+                    )
+                  }
+                >
+                  Toggle RSS Feed Subscription
+                </Button>
+              }
             >
               {loading ? (
                 <StatusIndicator type="loading">Loading...</StatusIndicator>
@@ -140,17 +180,36 @@ export default function RssFeed() {
                     <div>{rssSubscription?.path}</div>
                   </div>
                 </SpaceBetween>
+                <SpaceBetween size="l">
+                  <div>
+                    <Box variant="awsui-key-label">RSS Subscription Status</Box>
+                    <div>
+                      <StatusIndicator
+                        type={
+                          Labels.statusTypeMap[
+                            rssSubscription?.status ?? "unknown"
+                          ]
+                        }
+                      >
+                        {Labels.statusMap[rssSubscription?.status ?? "unknown"]}
+                      </StatusIndicator>
+                      {}
+                    </div>
+                  </div>
+                  <div>
+                    <Box variant="awsui-key-label">
+                      RSS Subscription Last Checked
+                    </Box>
+                    <div>
+                      {rssSubscription?.createdAt
+                        ? DateTime.fromISO(
+                            new Date(rssSubscription?.createdAt).toISOString()
+                          ).toLocaleString(DateTime.DATETIME_SHORT)
+                        : ""}
+                    </div>
+                  </div>
+                </SpaceBetween>
               </ColumnLayout>
-              <SpaceBetween size="l">
-                <div>
-                  <Box variant="awsui-key-label">RSS Subscription Status</Box>
-                  <div>{rssSubscription?.status}</div>
-                </div>
-                <div>
-                  <Box variant="awsui-key-label">RSS Feed Last Checked</Box>
-                  <div>Detail Coming Soon!</div>
-                </div>
-              </SpaceBetween>
             </Container>
             <Table
               loading={loading}
@@ -177,20 +236,28 @@ export default function RssFeed() {
                     </StatusIndicator>
                   ),
                 },
+                {
+                  id: "createdAt",
+                  header: "RSS Post Detected",
+                  cell: (item: DocumentItem) =>
+                    item.createdAt
+                      ? DateTime.fromISO(
+                          new Date(item.createdAt).toISOString()
+                        ).toLocaleString(DateTime.DATETIME_SHORT)
+                      : "",
+                },
               ]}
               items={rssSubscriptionPosts?.items}
+              empty={
+                <TableEmptyState
+                  resourceName="RSS Subscription Post"
+                  createText="Subcribe to an RSS Feed"
+                  createHref={`/rag/workspaces/add-data?workspaceId=${rssSubscription?.workspaceId}&tab=rss`}
+                />
+              }
               header={
                 <Header
-                  actions={
-                    <SpaceBetween direction="horizontal" size="xs">
-                      {/* <Button iconName="refresh" onClick={refreshPage} /> */}
-                      {/* <RouterButton
-                        href={`/rag/workspaces/add-data?workspaceId=${props.workspaceId}&tab=${props.documentType}`}
-                      >
-                        {typeAddStr}
-                      </RouterButton> */}
-                    </SpaceBetween>
-                  }
+                  actions={<Button iconName="refresh" onClick={getWorkspace} />}
                   description="See what posts have been crawled from the RSS feed."
                 ></Header>
               }
