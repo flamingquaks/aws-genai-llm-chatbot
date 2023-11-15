@@ -140,19 +140,6 @@ export interface DocumentItem {
   updatedAt: string;
 }
 
-export interface RssPostItem {
-  id: string;
-  workspaceId: string;
-  feedId: string;
-  title: string;
-  feedUrl?: string;
-  postUrl: string;
-}
-
-export interface RssPostResult {
-  posts: RssPostItem[];
-  lastPostId?: string;
-}
 
 export interface DocumentResult {
   items: DocumentItem[];
