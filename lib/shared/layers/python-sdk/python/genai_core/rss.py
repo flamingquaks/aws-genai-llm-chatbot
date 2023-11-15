@@ -129,10 +129,10 @@ def _toggle_rss_subscription_status(workspace_id, feed_id, status):
         update_item_response = dynamodb.update_item(
             TableName=RSS_FEED_TABLE,
             Key={
-                '#workdspace_id': {
+                'workdspace_id': {
                     'S': ':workspace_id'
                 },
-                '#compound_sort_key': {
+                'compound_sort_key': {
                     'S': ':feed_id_key'
                 }
             },
@@ -142,8 +142,6 @@ def _toggle_rss_subscription_status(workspace_id, feed_id, status):
                 }
             },
             ExpressionAttributeNames={
-                '#workspace_id': 'workspace_id',
-                '#compound_sort_key': 'compound_sort_key',
                 '#status': 'status'
             },
             ExpressionAttributeValues={
@@ -258,17 +256,15 @@ def set_rss_post_submitted(workspace_id, feed_id, post_id):
      return dynamodb.update_item(
           TableName=RSS_FEED_TABLE,
           Key={
-               '#workspace_id': {
+               'workspace_id': {
                     'S': ':workspace_id'
                },
-               '#compound_sort_key': {
+               'compound_sort_key': {
                     'S': ':compound_sort_key'
                }
           },
           UpdateExpression='SET #status = :status, #updated_at = :updated_at',
           ExpressionAttributeNames={
-               '#workspace_id': 'workspace_id',
-               '#compound_sort_key': 'compound_sort_key',
                '#status': 'status',
                '#updated_at': 'updated_at'
           },
@@ -300,7 +296,7 @@ def batch_crawl_websites():
             feed_id = post['feed_id']['S']
             post_id = post['post_id']['S']
             rss_item_address = post['url']['S']
-            crawl_rss_feed_post(workspace_id, feed_id, post_id)
+            crawl_rss_feed_post(workspace_id, rss_item_address, post_id)
             set_rss_post_submitted(workspace_id, feed_id, post_id)
             logger.info(f'Finished sending {post_id} ({rss_item_address}) to website crawler')
     else:
@@ -356,16 +352,14 @@ def check_rss_feed_for_posts(workspace_id, feed_id):
     dynamodb.update_item(
         TableName=RSS_FEED_TABLE,
         Key={
-            '#workspace_id': ':workspace_id',
-            '#compound_sort_key': ':compound_sort_key'
+            'workspace_id': ':workspace_id',
+            'compound_sort_key': ':compound_sort_key'
         },
         ConditionExpression='#document_type = :document_type',
         UpdateExpression={
             'SET #updated_at = :updated_at'
         },
         ExpressionAttributeNames={
-            "#workspace_id": "workspace_id",
-            "#compound_sort_key": "compound_sort_key",
             "#document_type": "document_type",
             "#updated_at": "updated_at"
         },
