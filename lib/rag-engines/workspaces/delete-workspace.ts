@@ -72,6 +72,21 @@ export class DeleteWorkspace extends Construct {
       }
     );
 
+    deleteFunction.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: [
+          "scheduler:ListSechedules",
+          "scheduler:CreateSchedule",
+          "scheduler:UpdateSchedule",
+          "scheduler:DeleteSchedule",
+        ],
+        effect: iam.Effect.ALLOW,
+        resources: [
+          `arn:aws:scheduler:${cdk.Aws.REGION}:${cdk.Aws.ACCOUNT_ID}:schedule/${props.dataImport.rssIngestorScheduleGroup}/*`,
+        ],
+      })
+    );
+
     if (props.auroraPgVector) {
       props.auroraPgVector.database.secret?.grantRead(deleteFunction);
       props.auroraPgVector.database.connections.allowDefaultPortFrom(

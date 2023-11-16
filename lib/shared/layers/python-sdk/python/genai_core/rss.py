@@ -257,10 +257,10 @@ def set_rss_post_submitted(workspace_id, feed_id, post_id):
           TableName=RSS_FEED_TABLE,
           Key={
                'workspace_id': {
-                    'S': ':workspace_id'
+                    'S': workspace_id
                },
                'compound_sort_key': {
-                    'S': ':compound_sort_key'
+                    'S': f'feed_id.{feed_id}.post_id.{post_id}'
                }
           },
           UpdateExpression='SET #status = :status, #updated_at = :updated_at',
@@ -271,12 +271,6 @@ def set_rss_post_submitted(workspace_id, feed_id, post_id):
           ExpressionAttributeValues={
                ':status': {
                     'S': 'processed'
-               },
-               ':compound_sort_key': {
-                    'S': f'feed_id.{feed_id}.post_id.{post_id}'
-               },
-               ':workspace_id': {
-                    'S': workspace_id
                },
                ':updated_at': {
                    'S': timestamp
@@ -352,8 +346,12 @@ def check_rss_feed_for_posts(workspace_id, feed_id):
     dynamodb.update_item(
         TableName=RSS_FEED_TABLE,
         Key={
-            'workspace_id': ':workspace_id',
-            'compound_sort_key': ':compound_sort_key'
+            'workspace_id': {
+                'S': workspace_id
+            },
+            'compound_sort_key': {
+                'S': f'feed_id.{feed_id}'
+            },
         },
         ConditionExpression='#document_type = :document_type',
         UpdateExpression={
@@ -364,12 +362,6 @@ def check_rss_feed_for_posts(workspace_id, feed_id):
             "#updated_at": "updated_at"
         },
         ExpressionAttributeValues={
-            ":workspace_id": {
-                'S': workspace_id
-            },
-            ':compound_sort_key': {
-                'S': f'feed_id.{feed_id}'
-            },
             ':document_type': {
                 'S': 'feed'
             },
