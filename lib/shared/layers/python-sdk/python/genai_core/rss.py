@@ -342,11 +342,10 @@ def check_rss_feed_for_posts(workspace_id, feed_id):
         },
         ConditionExpression='#document_type = :document_type',
         UpdateExpression={
-            'SET #updated_at = :updated_at'
+            'SET updated_at = :updated_at'
         },
         ExpressionAttributeNames={
             "#document_type": "document_type",
-            "#updated_at": "updated_at"
         },
         ExpressionAttributeValues={
             ':document_type': {
