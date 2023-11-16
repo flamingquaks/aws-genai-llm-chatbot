@@ -104,7 +104,7 @@ def create_rss_subscription(workspace_id, rss_feed_url, rss_feed_title):
         else:
             raise
 
-#TODO - Add Exception Handling
+
 @tracer.capture_method
 def disable_rss_subscription(workspace_id, feed_id):
     '''Disables scheduled subscription to RSS Subscription'''
@@ -115,7 +115,7 @@ def disable_rss_subscription(workspace_id, feed_id):
         'status': 'success'
     }
 
-#TODO - Add Exception Handling
+
 @tracer.capture_method
 def enable_rss_subscription(workspace_id, feed_id):
     '''Enables scheduled subscription to RSS Subscription'''
@@ -126,7 +126,6 @@ def enable_rss_subscription(workspace_id, feed_id):
         'status': 'success'
     }
 
-#TODO - Add Exception Handling
 def _toggle_rss_subscription_status(workspace_id, feed_id, status):
     logger.info(f'Toggling RSS Subscription for workspace_id {workspace_id} and feed_id {feed_id} to {status}')
     if status.lower() == 'enabled' or status.lower() == 'disabled':
@@ -173,7 +172,7 @@ def _toggle_rss_subscription_status(workspace_id, feed_id, status):
         if scheduler_response['ScheduleArn']:
             logger.info(f'Successfully set schedule to {status.lower()} for {feed_id}')
    
-#TODO - Add Exception Handling
+
 @tracer.capture_method
 def list_rss_subscriptions(workspace_id):
     '''Provides list of RSS Feed subscriptions for a given workspace'''
@@ -198,7 +197,6 @@ def list_rss_subscriptions(workspace_id):
         logger.debug('No RSS Subscriptions found')
         return []
 
-#TODO - Add Exception Handling
 @tracer.capture_method    
 def get_rss_subscription_details(workspace_id, feed_id):
     '''Gets details about the RSS feed provided'''
@@ -222,7 +220,6 @@ def get_rss_subscription_details(workspace_id, feed_id):
     else:
         return None
 
-#TODO - Add Exception Handling
 @tracer.capture_method
 def list_posts_for_rss_subscription(workspace_id, feed_id):
     '''Gets a list of posts that the RSS feed subscriber 
@@ -255,7 +252,6 @@ def list_posts_for_rss_subscription(workspace_id, feed_id):
     else:
         return []
 
-#TODO - Add Exception Handling    
 @tracer.capture_method
 def set_rss_post_submitted(workspace_id, feed_id, post_id):
      '''Sets an RSS Feed Post as Submitted'''

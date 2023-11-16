@@ -288,15 +288,17 @@ export default function RssFeed() {
               header={
                 <Header
                   actions={[
-                    <Button
-                      href={`/rag/workspaces/${workspace?.id}?tab=website`}
-                    >
-                      View Crawled Websites
-                    </Button>,
-                    <Button
-                      iconName="refresh"
-                      onClick={getRssSubscriptionPosts}
-                    />,
+                    <SpaceBetween direction="horizontal" size="xs">
+                      <Button
+                        href={`/rag/workspaces/${workspace?.id}?tab=website`}
+                      >
+                        View Crawled Websites
+                      </Button>
+                      <Button
+                        iconName="refresh"
+                        onClick={getRssSubscriptionPosts}
+                      />
+                    </SpaceBetween>,
                   ]}
                   description="RSS Feed Subscriptions check for new posts daily and queues new posts for Website Crawling. Visit the Websites tab in the workspace to see the websites that have been crawled."
                 >
