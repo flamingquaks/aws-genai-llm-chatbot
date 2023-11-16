@@ -429,11 +429,16 @@ def _queue_rss_subscription_post_for_submission(workspace_id, feed_id,feed_entry
 def _delete_rss_subscription_schedule(feed_id):
     '''Deletes the EventBridge Scheduler schedule for the Subscription Feed ID provided'''
     logger.info(f'Deleting EventBridge Scheduler schedule for feed_id {feed_id}')
-    scheduler.delete_schedule(
-        Name=feed_id,
-        GroupName=RSS_SCHEDULE_GROUP_NAME
-    )
-    logger.info(f'EventBridge Scheduler schedule for feed_id {feed_id} deleted')
+    try:
+        scheduler.delete_schedule(
+            Name=feed_id,
+            GroupName=RSS_SCHEDULE_GROUP_NAME
+        )
+    except botocore.exceptions.ClientError as error:
+        if error.response['Error']['Code'] == 'ResourceNotFoundException':
+            logger.info(f'EventBridge Scheduler schedule for feed_id {feed_id} not found. Nothing to delete')
+        else:
+            logger.error(f'Error Deleting schedule for feed_id {feed_id}',error)
 
 def _delete_workspace_rss_subscription_posts(workspace_id):
     '''Deletes data from DynamoDB RSS Table relating to workspace'''

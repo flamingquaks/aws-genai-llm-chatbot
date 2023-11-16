@@ -75,7 +75,9 @@ export default function RssFeed() {
   const toggleRssSubscription = useCallback(
     async (toState: string) => {
       if (!appContext || !workspaceId || !feedId) return;
-      if (toState.toLowerCase() == "disabled") {
+      setLoading(true);
+      if (toState.toLowerCase() == "disable") {
+        console.debug('Toggle to Disabled!')
         const apiClient = new ApiClient(appContext);
         const result = await apiClient.rss.disableRssSubscription(
           workspaceId,
@@ -84,7 +86,8 @@ export default function RssFeed() {
         if (ResultValue.ok(result)) {
           setRssSubscription(result.data);
         }
-      } else if (toState.toLowerCase() == "enabled") {
+      } else if (toState.toLowerCase() == "enable") {
+        console.debug('Toggle to Enabled!')
         const apiClient = new ApiClient(appContext);
         const result = await apiClient.rss.enableRssSubscription(
           workspaceId,
@@ -94,7 +97,7 @@ export default function RssFeed() {
           setRssSubscription(result.data);
         }
       }
-      setLoading(true);
+      
       getWorkspace();
     },
     [appContext, workspaceId, feedId, getWorkspace]
@@ -253,7 +256,7 @@ export default function RssFeed() {
               empty={
                 <TableEmptyState
                   resourceName="RSS Subscription Post"
-                  createText="Subcribe to an RSS Feed"
+                  createText="Subcribe to a new RSS Feed"
                   createHref={`/rag/workspaces/add-data?workspaceId=${rssSubscription?.workspaceId}&tab=rss`}
                 />
               }
