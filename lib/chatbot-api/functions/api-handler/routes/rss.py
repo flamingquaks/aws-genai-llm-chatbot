@@ -67,7 +67,7 @@ def list_posts_for_rss_subscription(workspace_id: str, feed_id: str):
 @router.get('/rss/<workspace_id>/<feed_id>/disable')
 @tracer.capture_method
 def disable_rss_subscription(workspace_id: str, feed_id: str):
-    result = genai_core.rss.disable_rss_feed_subscription(workspace_id, feed_id)
+    result = genai_core.rss.disable_rss_subscription(workspace_id, feed_id)
     return {"ok": True, "data": {
         "items": result
     }}
@@ -75,7 +75,7 @@ def disable_rss_subscription(workspace_id: str, feed_id: str):
 @router.get('/rss/<workspace_id>/<feed_id>/enable')
 @tracer.capture_method
 def enable_rss_subscription(workspace_id: str, feed_id: str):
-    result = genai_core.rss.enable_rss_feed_subscription(workspace_id, feed_id)
+    result = genai_core.rss.enable_rss_subscription(workspace_id, feed_id)
     return {"ok": True, "data": {
         "items": result
     }}

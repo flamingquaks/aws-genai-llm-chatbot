@@ -25,6 +25,7 @@ RSS_FEED_SCHEDULE_ROLE_ARN = os.environ['RSS_FEED_SCHEDULE_ROLE_ARN'] if "RSS_FE
 RSS_FEED_DOCUMENT_TYPE_STATUS_INDEX = os.environ['RSS_FEED_DOCUMENT_TYPE_STATUS_INDEX'] if "RSS_FEED_DOCUMENT_TYPE_STATUS_INDEX" in os.environ else ""
 RSS_FEED_WORKSPACE_DOCUMENT_TYPE_INDEX = os.environ['RSS_FEED_WORKSPACE_DOCUMENT_TYPE_INDEX'] if "RSS_FEED_WORKSPACE_DOCUMENT_TYPE_INDEX" in os.environ else ""
 
+#TODO - Add Exception Handling
 @tracer.capture_method
 def create_rss_subscription(workspace_id, rss_feed_url, rss_feed_title):
     logger.info(f'Creating RSS Subscription for workspace_id {workspace_id} and rss_feed_url {rss_feed_url}')
@@ -103,6 +104,7 @@ def create_rss_subscription(workspace_id, rss_feed_url, rss_feed_title):
         else:
             raise
 
+#TODO - Add Exception Handling
 @tracer.capture_method
 def disable_rss_subscription(workspace_id, feed_id):
     '''Disables scheduled subscription to RSS Subscription'''
@@ -113,6 +115,7 @@ def disable_rss_subscription(workspace_id, feed_id):
         'status': 'success'
     }
 
+#TODO - Add Exception Handling
 @tracer.capture_method
 def enable_rss_subscription(workspace_id, feed_id):
     '''Enables scheduled subscription to RSS Subscription'''
@@ -123,10 +126,11 @@ def enable_rss_subscription(workspace_id, feed_id):
         'status': 'success'
     }
 
+#TODO - Add Exception Handling
 def _toggle_rss_subscription_status(workspace_id, feed_id, status):
     logger.info(f'Toggling RSS Subscription for workspace_id {workspace_id} and feed_id {feed_id} to {status}')
     if status.lower() == 'enabled' or status.lower() == 'disabled':
-        update_item_response = dynamodb.update_item(
+        dynamodb.update_item(
             TableName=RSS_FEED_TABLE,
             Key={
                 'workspace_id': {
@@ -136,27 +140,40 @@ def _toggle_rss_subscription_status(workspace_id, feed_id, status):
                     'S': f'feed_id.{feed_id}'
                 }
             },
-            AttibuteUpdates={
-                'status': {
-                    'S': status.lower()
-                }
+            UpdateExpression='SET #status = :status',
+            ExpressionAttributeNames={
+                '#status': 'status',
             },
-            
+            ExpressionAttributeValues={
+                ':status': {
+                    'S': status
+                }
+            }            
         )
-        if update_item_response['Attributes']:
-            logger.info(f'Updated status for {feed_id} to {status} in DynamoDB')
-            logger.info(f'Updating scheduler status for {feed_id} to {status}')
-            scheduler_response = scheduler.update_schedule(
-                Name=feed_id,
-                GroupName=RSS_SCHEDULE_GROUP_NAME,
-                State=status.upper()
-            )
-            if scheduler_response['ScheduleArn']:
-                logger.info(f'Successfully set schedule to {status.lower()} for {feed_id}')
-    else:
-        logger.error(f'Invalid status update for RSS Subscription')
-
-
+        
+        logger.info(f'Updated status for {feed_id} to {status} in DynamoDB')
+        logger.info(f'Updating scheduler status for {feed_id} to {status}')
+        scheduler_response = scheduler.update_schedule(
+            ActionAfterCompletion= 'NONE',
+            Name=feed_id,
+            State=status.upper(),
+            Description=f'RSS Feed Subscription for GenAI Website Crawling',
+            GroupName=RSS_SCHEDULE_GROUP_NAME,
+            ScheduleExpression='rate(1 day)',
+            Target={
+                'Arn': RSS_FEED_INGESTOR_FUNCTION,
+                'Input': json.dumps({'workspace_id': workspace_id, 'feed_id': feed_id}),
+                'RoleArn': RSS_FEED_SCHEDULE_ROLE_ARN
+            },
+            FlexibleTimeWindow={
+                'MaximumWindowInMinutes': 120,
+                'Mode':'FLEXIBLE'
+            },
+        )
+        if scheduler_response['ScheduleArn']:
+            logger.info(f'Successfully set schedule to {status.lower()} for {feed_id}')
+   
+#TODO - Add Exception Handling
 @tracer.capture_method
 def list_rss_subscriptions(workspace_id):
     '''Provides list of RSS Feed subscriptions for a given workspace'''
@@ -181,6 +198,7 @@ def list_rss_subscriptions(workspace_id):
         logger.debug('No RSS Subscriptions found')
         return []
 
+#TODO - Add Exception Handling
 @tracer.capture_method    
 def get_rss_subscription_details(workspace_id, feed_id):
     '''Gets details about the RSS feed provided'''
@@ -204,6 +222,7 @@ def get_rss_subscription_details(workspace_id, feed_id):
     else:
         return None
 
+#TODO - Add Exception Handling
 @tracer.capture_method
 def list_posts_for_rss_subscription(workspace_id, feed_id):
     '''Gets a list of posts that the RSS feed subscriber 
@@ -235,7 +254,8 @@ def list_posts_for_rss_subscription(workspace_id, feed_id):
         return posts
     else:
         return []
-    
+
+#TODO - Add Exception Handling    
 @tracer.capture_method
 def set_rss_post_submitted(workspace_id, feed_id, post_id):
      '''Sets an RSS Feed Post as Submitted'''
@@ -313,7 +333,9 @@ def get_rss_subscription_details(workspace_id,feed_id):
             'id': dynamodb_response['Items'][0]['feed_id']['S'],
             'path': dynamodb_response['Items'][0]['url']['S'],
             'title': dynamodb_response['Items'][0]['title']['S'],
-            'status': dynamodb_response['Items'][0]['status']['S']
+            'status': dynamodb_response['Items'][0]['status']['S'],
+            'createdAt': dynamodb_response['Items'][0]['created_at']['S'] if "created_at" in dynamodb_response['Items'][0] else "",
+            'updatedAt': dynamodb_response['Items'][0]['updated_at']['S'] if "updated_at" in dynamodb_response['Items'][0] else ""
         }
 
 @tracer.capture_method

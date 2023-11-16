@@ -25,6 +25,7 @@ import { ApiClient } from "../../../common/api-client/api-client";
 import { CHATBOT_NAME, Labels } from "../../../common/constants";
 import { TableEmptyState } from "../../../components/table-empty-state";
 import { DateTime } from "luxon";
+import { Utils } from "../../../common/utils";
 
 export default function RssFeed() {
   const appContext = useContext(AppContext);
@@ -40,44 +41,50 @@ export default function RssFeed() {
     useState<DocumentResult>({ items: [] });
 
   const getWorkspace = useCallback(async () => {
-    if (!appContext || !workspaceId || !feedId) return;
-
+    if (!appContext || !workspaceId) return;
     const apiClient = new ApiClient(appContext);
     const workspaceResult =
       await apiClient.workspaces.getWorkspace(workspaceId);
+    if (ResultValue.ok(workspaceResult)) {
+      if (!workspaceResult.data) {
+        navigate("/rag/workspaces");
+        return;
+      }
+      setWorkspace(workspaceResult.data);
+      setLoading(false);
+    }
+  }, [appContext, navigate, workspaceId]);
+
+  const getRssSubscriptionDetails = useCallback(async () => {
+    if (!appContext || !workspaceId || !feedId) return;
+    const apiClient = new ApiClient(appContext);
     const rssSubscriptionResult = await apiClient.rss.getRssSubscriptionDetails(
       workspaceId,
       feedId
     );
-    const rssSubscriptionPosts = await apiClient.rss.getRssSubscriptionPosts(
-      workspaceId,
-      feedId
-    );
-
-    if (
-      ResultValue.ok(workspaceResult) &&
-      ResultValue.ok(rssSubscriptionResult)
-    ) {
-      if (!workspaceResult.data || !rssSubscriptionResult.data) {
-        navigate("/rag/workspaces");
-        return;
-      }
-      if (ResultValue.ok(rssSubscriptionPosts)) {
-        setRssSubscriptionPosts(rssSubscriptionPosts.data);
-      }
-
+    if (ResultValue.ok(rssSubscriptionResult)) {
       setRssSubscription(rssSubscriptionResult.data);
-      setWorkspace(workspaceResult.data);
-      setLoading(false);
     }
-  }, [appContext, navigate, workspaceId, feedId]);
+    setLoading(false);
+  }, [appContext, workspaceId, feedId]);
+
+  const getRssSubscriptionPosts = useCallback(async () => {
+    if (!appContext || !workspaceId || !feedId) return;
+    const apiClient = new ApiClient(appContext);
+    const rssSubscriptionPostsResult =
+      await apiClient.rss.getRssSubscriptionPosts(workspaceId, feedId);
+    if (ResultValue.ok(rssSubscriptionPostsResult)) {
+      setRssSubscriptionPosts(rssSubscriptionPostsResult.data);
+    }
+    setLoading(false);
+  }, [appContext, workspaceId, feedId]);
 
   const toggleRssSubscription = useCallback(
     async (toState: string) => {
       if (!appContext || !workspaceId || !feedId) return;
       setLoading(true);
       if (toState.toLowerCase() == "disable") {
-        console.debug('Toggle to Disabled!')
+        console.debug("Toggle to Disabled!");
         const apiClient = new ApiClient(appContext);
         const result = await apiClient.rss.disableRssSubscription(
           workspaceId,
@@ -87,7 +94,7 @@ export default function RssFeed() {
           setRssSubscription(result.data);
         }
       } else if (toState.toLowerCase() == "enable") {
-        console.debug('Toggle to Enabled!')
+        console.debug("Toggle to Enabled!");
         const apiClient = new ApiClient(appContext);
         const result = await apiClient.rss.enableRssSubscription(
           workspaceId,
@@ -97,15 +104,17 @@ export default function RssFeed() {
           setRssSubscription(result.data);
         }
       }
-      
-      getWorkspace();
+      getRssSubscriptionDetails();
+      setLoading(false);
     },
-    [appContext, workspaceId, feedId, getWorkspace]
+    [appContext, workspaceId, feedId, getRssSubscriptionDetails]
   );
 
   useEffect(() => {
     getWorkspace();
-  }, [getWorkspace]);
+    getRssSubscriptionDetails();
+    getRssSubscriptionPosts();
+  }, [getWorkspace, getRssSubscriptionDetails, getRssSubscriptionPosts]);
 
   return (
     <BaseAppLayout
@@ -203,12 +212,24 @@ export default function RssFeed() {
                   </div>
                   <div>
                     <Box variant="awsui-key-label">
-                      RSS Subscription Last Checked
+                      RSS Subscription Created
                     </Box>
                     <div>
                       {rssSubscription?.createdAt
                         ? DateTime.fromISO(
                             new Date(rssSubscription?.createdAt).toISOString()
+                          ).toLocaleString(DateTime.DATETIME_SHORT)
+                        : ""}
+                    </div>
+                  </div>
+                  <div>
+                    <Box variant="awsui-key-label">
+                      RSS Subscription Last Checked
+                    </Box>
+                    <div>
+                      {rssSubscription?.updatedAt
+                        ? DateTime.fromISO(
+                            new Date(rssSubscription?.updatedAt).toISOString()
                           ).toLocaleString(DateTime.DATETIME_SHORT)
                         : ""}
                     </div>
@@ -223,13 +244,17 @@ export default function RssFeed() {
                 {
                   id: "title",
                   header: "Title",
-                  cell: (item: DocumentItem) => item.title,
+                  cell: (item: DocumentItem) => (
+                    <>{Utils.textEllipsis(item.title ?? "", 100)}</>
+                  ),
                   isRowHeader: true,
                 },
                 {
                   id: "url",
                   header: "URL",
-                  cell: (item: DocumentItem) => item.path,
+                  cell: (item: DocumentItem) => (
+                    <>{Utils.textEllipsis(item.path ?? "", 100)}</>
+                  ),
                   isRowHeader: true,
                 },
                 {
@@ -262,8 +287,18 @@ export default function RssFeed() {
               }
               header={
                 <Header
-                  actions={<Button iconName="refresh" onClick={getWorkspace} />}
-                  description="See what posts have been sent for website crawling from the RSS feed."
+                  actions={[
+                    <Button
+                      href={`/rag/workspaces/${workspace?.id}?tab=website`}
+                    >
+                      View Crawled Websites
+                    </Button>,
+                    <Button
+                      iconName="refresh"
+                      onClick={getRssSubscriptionPosts}
+                    />,
+                  ]}
+                  description="RSS Feed Subscriptions check for new posts daily and queues new posts for Website Crawling. Visit the Websites tab in the workspace to see the websites that have been crawled."
                 >
                   Posts from RSS Feed
                 </Header>
