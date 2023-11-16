@@ -52,7 +52,7 @@ def create_rss_subscription(workspace_id, rss_feed_url, rss_feed_title):
                     'S': 'feed'
                 },
                 'status': {
-                    'S': 'ENABLED'
+                    'S': 'enabled'
                 },
                 'created_at': {
                     'S': timestamp
@@ -107,7 +107,7 @@ def create_rss_subscription(workspace_id, rss_feed_url, rss_feed_title):
 def disable_rss_subscription(workspace_id, feed_id):
     '''Disables scheduled subscription to RSS Subscription'''
     logger.info(f'Disabling RSS Subscription for workspace_id {workspace_id} and feed_id {feed_id}')
-    _toggle_rss_subscription_status(workspace_id, feed_id, 'DISABLED')
+    _toggle_rss_subscription_status(workspace_id, feed_id, 'disabled')
     logger.info(f'Successfully disabled RSS Subscription for workspace_id {workspace_id} and feed_id {feed_id}')
     return {
         'status': 'success'
@@ -117,7 +117,7 @@ def disable_rss_subscription(workspace_id, feed_id):
 def enable_rss_subscription(workspace_id, feed_id):
     '''Enables scheduled subscription to RSS Subscription'''
     logger.info(f'Enabling RSS Subscription for workspace_id {workspace_id} and feed_id {feed_id}')
-    _toggle_rss_subscription_status(workspace_id, feed_id, 'ENABLED')
+    _toggle_rss_subscription_status(workspace_id, feed_id, 'enabled')
     logger.info(f'Successfully enabled RSS Subscription for workspace_id {workspace_id} and feed_id {feed_id}')
     return {
         'status': 'success'
@@ -129,32 +129,19 @@ def _toggle_rss_subscription_status(workspace_id, feed_id, status):
         update_item_response = dynamodb.update_item(
             TableName=RSS_FEED_TABLE,
             Key={
-                'workdspace_id': {
-                    'S': ':workspace_id'
+                'workspace_id': {
+                    'S': workspace_id
                 },
                 'compound_sort_key': {
-                    'S': ':feed_id_key'
+                    'S': f'feed_id.{feed_id}'
                 }
             },
             AttibuteUpdates={
-                '#status': {
-                    'S': ':status'
-                }
-            },
-            ExpressionAttributeNames={
-                '#status': 'status'
-            },
-            ExpressionAttributeValues={
-                ':workspace_id': {
-                    'S': workspace_id
-                },
-                ":feed_id_key": {
-                     "S": f'feed_id.{feed_id}' 
-                },
-                ':status': {
+                'status': {
                     'S': status.lower()
                 }
-            }
+            },
+            
         )
         if update_item_response['Attributes']:
             logger.info(f'Updated status for {feed_id} to {status} in DynamoDB')
@@ -290,7 +277,7 @@ def batch_crawl_websites():
             feed_id = post['feed_id']['S']
             post_id = post['post_id']['S']
             rss_item_address = post['url']['S']
-            crawl_rss_feed_post(workspace_id, rss_item_address, post_id)
+            crawl_rss_feed_post(workspace_id, rss_item_address)
             set_rss_post_submitted(workspace_id, feed_id, post_id)
             logger.info(f'Finished sending {post_id} ({rss_item_address}) to website crawler')
     else:
