@@ -299,6 +299,32 @@ def batch_crawl_websites():
             crawl_rss_feed_post(workspace_id, rss_item_address)
             set_rss_post_submitted(workspace_id, feed_id, post_id)
             logger.info(f'Finished sending {post_id} ({rss_item_address}) to website crawler')
+            dynamodb.update_item(
+                TableName=RSS_FEED_TABLE,
+                Key={
+                    'workspace_id': {
+                        'S': workspace_id
+                    },
+                    'compound_sort_key': {
+                        'S': f'feed_id.{feed_id}'
+                    }
+                },
+                UpdateExpression='SET #updated_at = :updated_at',
+                ConditionExpression='#document_type = :document_type',
+                ExpressionAttributeNames={
+                    '#updated_at': 'updated_at',
+                    '#document_type': 'document_type'
+                },
+                ExpressionAttributeValues={
+                    ':updated_at': {
+                        'S': timestamp
+                    },
+                    ':document_type': {
+                        'S': 'feed'
+                    }
+                }
+            )
+            logger.info(f'Updated {feed_id} in {workspace_id} workspace with latest check timestamp')
     else:
         logger.info(f'No pending posts found')
 
