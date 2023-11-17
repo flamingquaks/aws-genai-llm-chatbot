@@ -42,7 +42,7 @@ export class DataImport extends Construct {
   public readonly ingestionQueue: sqs.Queue;
   public readonly fileImportWorkflow: sfn.StateMachine;
   public readonly websiteCrawlingWorkflow: sfn.StateMachine;
-  public readonly rssIngestorFunctionArn: string;
+  public readonly rssIngestorFunction: lambda.Function;
   public readonly scheduledRssIngestFunctionRoleArn: string;
   public readonly rssIngestorScheduleGroup: string;
 
@@ -208,8 +208,7 @@ export class DataImport extends Construct {
     this.ingestionQueue = ingestionQueue;
     this.fileImportWorkflow = fileImportWorkflow.stateMachine;
     this.websiteCrawlingWorkflow = websiteCrawlingWorkflow.stateMachine;
-    this.rssIngestorFunctionArn =
-      websiteCrawlingWorkflow.rssIngestorFunction.functionArn;
+    this.rssIngestorFunction = websiteCrawlingWorkflow.rssIngestorFunction;
     this.scheduledRssIngestFunctionRoleArn =
       websiteCrawlingWorkflow.scheduledRssIngestFunctionRole.roleArn;
     this.rssIngestorScheduleGroup =

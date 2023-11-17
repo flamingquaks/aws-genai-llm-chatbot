@@ -28,12 +28,12 @@ def subscribe_to_rss(workspace_id: str):
         return {"ok": True, "data": {
             "items": result
         }}
-    except Exception as e:
+    except botocore.exceptions.ClientError as error:
         logger.error(f'Error subscribing to RSS for workspace_id {workspace_id}')
         tracer.put_annotation(key="workspace_id", value=workspace_id)
         return {
             "error": True,
-            "message": e
+            "message": error
         }
 
 
@@ -49,12 +49,12 @@ def list_rss_subscriptions(workspace_id: str):
                 "items": result
             },
         }
-    except botocore.exceptions.ClientException as e:
+    except botocore.exceptions.ClientError as error:
         logger.error(f'Error listing RSS Subscriptions for workspace_id {workspace_id}')
         tracer.put_annotation(key="workspace_id", value=workspace_id)
         return {
             "error": True,
-            "message": e
+            "message": error
         }
 
 
@@ -69,13 +69,13 @@ def get_rss_subscription_details(workspace_id: str, feed_id: str):
             "ok": True,
             "data": details
         }
-    except botocore.exceptions.ClientException as e:
+    except botocore.exceptions.ClientError as error:
         logger.error(f'Error getting RSS Subscription Details for feed_id {feed_id} and workspace_id {workspace_id}')
         tracer.put_annotation(key="workspace_id", value=workspace_id)
         tracer.put_annotation(key="feed_id", value=feed_id)
         return {
             "error": True,
-            "message": e
+            "message": error
         }
 
 @router.get('/rss/<workspace_id>/<feed_id>/posts')
@@ -92,13 +92,13 @@ def list_posts_for_rss_subscription(workspace_id: str, feed_id: str):
             return {"ok": True, "data": {
                 "items": posts,
             }}
-    except botocore.exceptions.ClientException as e:
-        logger.error(f'Error listing posts for RSS subscription: {e}')
+    except botocore.exceptions.ClientError as error:
+        logger.error(f'Error listing posts for RSS subscription: {error}')
         tracer.put_annotation(key="workspace_id", value=workspace_id)
         tracer.put_annotation(key="feed_id", value=feed_id)
         return {
             "error": True,
-            "message": e
+            "message": error
         }
         
 
@@ -110,13 +110,13 @@ def disable_rss_subscription(workspace_id: str, feed_id: str):
         return {"ok": True, "data": {
             "items": result
         }}
-    except botocore.exceptions.ClientException as e:
-        logger.error(f'Error disabling RSS subscription: {e}')
+    except botocore.exceptions.ClientError as error:
+        logger.error(f'Error disabling RSS subscription: {error}')
         tracer.put_annotation(key="workspace_id", value=workspace_id)
         tracer.put_annotation(key="feed_id", value=feed_id)
         return {
             "error" :True,
-            "message": e
+            "message": error
         }
 
 @router.get('/rss/<workspace_id>/<feed_id>/enable')
@@ -127,12 +127,11 @@ def enable_rss_subscription(workspace_id: str, feed_id: str):
         return {"ok": True, "data": {
             "items": result
         }}
-    except botocore.exceptions.ClientException as e:
-        logger.error(f'Error enabling RSS subscription: {e}')
+    except botocore.exceptions.ClientError as error:
+        logger.error(f'Error enabling RSS subscription: {error}')
         tracer.put_annotation(key="workspace_id", value=workspace_id)
         tracer.put_annotation(key="feed_id", value=feed_id)
         return {
             "error" :True,
-            "message": e
-
+            "message": error
         }

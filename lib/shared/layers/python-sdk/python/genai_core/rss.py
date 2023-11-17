@@ -31,6 +31,7 @@ def create_rss_subscription(workspace_id, rss_feed_url, rss_feed_title):
     logger.info(f'Creating RSS Subscription for workspace_id {workspace_id} and rss_feed_url {rss_feed_url}')
     try:
         rss_feed_id = _get_id_for_url(rss_feed_url)
+        schedule_id = str(uuid.uuid4())
         dynamodb.put_item(
             TableName=RSS_FEED_TABLE,
             Item={
@@ -58,8 +59,8 @@ def create_rss_subscription(workspace_id, rss_feed_url, rss_feed_title):
                 'created_at': {
                     'S': timestamp
                 },
-                'updated_at' : {
-                    'S': timestamp
+                'schedule_id' : {
+                    'S': schedule_id
                 }
             },
         )
@@ -67,7 +68,7 @@ def create_rss_subscription(workspace_id, rss_feed_url, rss_feed_title):
         logger.info('Creating schedule for feed polling')
         scheduler_response = scheduler.create_schedule(
             ActionAfterCompletion= 'NONE',
-            Name=rss_feed_id,
+            Name=schedule_id,
             Description=f'RSS Feed Subscription for GenAI Website Crawling',
             GroupName=RSS_SCHEDULE_GROUP_NAME,
             ScheduleExpression='rate(1 day)',
@@ -88,7 +89,7 @@ def create_rss_subscription(workspace_id, rss_feed_url, rss_feed_title):
             lambda_client = boto3.client('lambda')
             lambda_client.invoke(
                 FunctionName=RSS_FEED_INGESTOR_FUNCTION,
-                InvocationType='EVENT',
+                InvocationType='Event',
                 Payload=json.dumps({
                     "workspace_id": workspace_id,
                     "feed_id": rss_feed_id
@@ -129,7 +130,7 @@ def enable_rss_subscription(workspace_id, feed_id):
 def _toggle_rss_subscription_status(workspace_id, feed_id, status):
     logger.info(f'Toggling RSS Subscription for workspace_id {workspace_id} and feed_id {feed_id} to {status}')
     if status.lower() == 'enabled' or status.lower() == 'disabled':
-        dynamodb.update_item(
+        updated_subscription = dynamodb.update_item(
             TableName=RSS_FEED_TABLE,
             Key={
                 'workspace_id': {
@@ -147,30 +148,32 @@ def _toggle_rss_subscription_status(workspace_id, feed_id, status):
                 ':status': {
                     'S': status
                 }
-            }            
+            },
+            ReturnValues='ALL_NEW'            
         )
-        
         logger.info(f'Updated status for {feed_id} to {status} in DynamoDB')
-        logger.info(f'Updating scheduler status for {feed_id} to {status}')
-        scheduler_response = scheduler.update_schedule(
-            ActionAfterCompletion= 'NONE',
-            Name=feed_id,
-            State=status.upper(),
-            Description=f'RSS Feed Subscription for GenAI Website Crawling',
-            GroupName=RSS_SCHEDULE_GROUP_NAME,
-            ScheduleExpression='rate(1 day)',
-            Target={
-                'Arn': RSS_FEED_INGESTOR_FUNCTION,
-                'Input': json.dumps({'workspace_id': workspace_id, 'feed_id': feed_id}),
-                'RoleArn': RSS_FEED_SCHEDULE_ROLE_ARN
-            },
-            FlexibleTimeWindow={
-                'MaximumWindowInMinutes': 120,
-                'Mode':'FLEXIBLE'
-            },
-        )
-        if scheduler_response['ScheduleArn']:
-            logger.info(f'Successfully set schedule to {status.lower()} for {feed_id}')
+        if 'Attributes' in updated_subscription and 'schedule_id' in updated_subscription['Attributes']:
+            schedule_id = updated_subscription['Attributes']['schedule_id']['S']
+            logger.info(f'Updating scheduler status for {feed_id} to {status}')
+            scheduler_response = scheduler.update_schedule(
+                ActionAfterCompletion= 'NONE',
+                Name=schedule_id,
+                State=status.upper(),
+                Description=f'RSS Feed Subscription for GenAI Website Crawling',
+                GroupName=RSS_SCHEDULE_GROUP_NAME,
+                ScheduleExpression='rate(1 day)',
+                Target={
+                    'Arn': RSS_FEED_INGESTOR_FUNCTION,
+                    'Input': json.dumps({'workspace_id': workspace_id, 'feed_id': feed_id}),
+                    'RoleArn': RSS_FEED_SCHEDULE_ROLE_ARN
+                },
+                FlexibleTimeWindow={
+                    'MaximumWindowInMinutes': 120,
+                    'Mode':'FLEXIBLE'
+                },
+            )
+            if scheduler_response['ScheduleArn']:
+                logger.info(f'Successfully set schedule to {status.lower()} for {feed_id}')
    
 
 @tracer.capture_method
@@ -191,7 +194,7 @@ def list_rss_subscriptions(workspace_id):
             'workspaceId': workspace_id,
             'path': subscription['url']['S'],
             'title': subscription['title']['S'],
-            'status': subscription['status']['S']
+            'status': subscription['status']['S'],
         } for subscription in subscriptions['Items']]
     else:
         logger.debug('No RSS Subscriptions found')
@@ -430,10 +433,9 @@ def _queue_rss_subscription_post_for_submission(workspace_id, feed_id,feed_entry
                 '#compound_sort_key': 'compound_sort_key',
             }
         )
-        if dynamodb_response['Attributes']:
-            logger.info(f'Successfully added RSS Feed Post to DynamoDB Table')
-            logger.info(f'RSS Feed Post: {dynamodb_response["Attributes"]}')
-            return True
+        logger.info(f'Successfully added RSS Feed Post to DynamoDB Table')
+        logger.info(f'RSS Feed Post: {dynamodb_response["Attributes"]}')
+        return True
     except botocore.exceptions.ClientError as e:
         if e.response['Error']['Code'] != 'ConditionalCheckFailedException':
             logger.error(f'Error adding RSS Feed Post to DynamoDB Table: {e}')
@@ -480,7 +482,7 @@ def _delete_workspace_rss_subscription_posts(workspace_id):
                                 'S': workspace_id
                             },
                             'compound_sort_key': {
-                                'S': item['compound_sort_key']
+                                'S': item['compound_sort_key']['S']
                             }
                         }
                     }
@@ -505,7 +507,11 @@ def delete_workspace_subscriptions(workspace_id):
     if dynamodb_response['Count'] > 0:
         for feed in dynamodb_response['Items']:
             logger.info(f'Deleting RSS Feed Schedule for: {feed["feed_id"]["S"]}')
-            _delete_rss_subscription_schedule(feed['feed_id']['S'])
+            if 'schedule_id' in feed:
+                logger.info(f'Deleting schedule_id {feed["schedule_id"]["S"]}')
+                _delete_rss_subscription_schedule(feed["schedule_id"]["S"])
+            else:
+                logger.info(f'No schedule_id found for RSS Feed {feed["feed_id"]["S"]}')
         items_to_delete = dynamodb_response['Items']
         for i in range(0, len(items_to_delete), 25):
             delete_items = []
@@ -517,7 +523,7 @@ def delete_workspace_subscriptions(workspace_id):
                                 'S': workspace_id
                             },
                             'compound_sort_key': {
-                                'S': item['compound_sort_key']
+                                'S': item['compound_sort_key']['S']
                             }
                         }
                     }

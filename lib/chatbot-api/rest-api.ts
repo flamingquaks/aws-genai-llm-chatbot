@@ -102,7 +102,7 @@ export class RestApi extends Construct {
         RSS_SCHEDULE_GROUP_NAME:
           props.ragEngines?.dataImport.rssIngestorScheduleGroup ?? "",
         RSS_FEED_INGESTOR_FUNCTION:
-          props.ragEngines?.dataImport.rssIngestorFunctionArn ?? "",
+          props.ragEngines?.dataImport.rssIngestorFunction.functionArn ?? "",
         RSS_FEED_SCHEDULE_ROLE_ARN:
           props.ragEngines?.dataImport.scheduledRssIngestFunctionRoleArn ?? "",
         RSS_FEED_TABLE: props.ragEngines?.rssFeedTable.tableName ?? "",
@@ -122,6 +122,7 @@ export class RestApi extends Construct {
     }
 
     if (props.ragEngines?.rssFeedTable) {
+      props.ragEngines.dataImport.rssIngestorFunction.grantInvoke(apiHandler);
       props.ragEngines.rssFeedTable.grantReadWriteData(apiHandler);
       apiHandler.addToRolePolicy(
         new iam.PolicyStatement({
