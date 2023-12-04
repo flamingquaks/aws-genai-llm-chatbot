@@ -18,6 +18,9 @@ export class Authentication extends Construct {
       signInAliases: {
         email: true,
       },
+      customAttributes: {
+        userRole: new cognito.StringAttribute({ mutable: true }),
+      },
     });
 
     const userPoolClient = userPool.addClient("UserPoolClient", {
