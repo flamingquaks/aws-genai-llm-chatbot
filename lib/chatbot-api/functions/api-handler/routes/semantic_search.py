@@ -2,6 +2,7 @@ import genai_core.semantic_search
 from pydantic import BaseModel
 from aws_lambda_powertools import Logger, Tracer
 from aws_lambda_powertools.event_handler.api_gateway import Router
+from genai_core.auth import role_permission
 
 tracer = Tracer()
 router = Router()
@@ -15,6 +16,7 @@ class SemanticSearchRequest(BaseModel):
 
 @router.post("/semantic-search")
 @tracer.capture_method
+@role_permission(["admin", "workspaces_manager", "workspaces_user"])
 def semantic_search():
     data: dict = router.current_event.json_body
     request = SemanticSearchRequest(**data)

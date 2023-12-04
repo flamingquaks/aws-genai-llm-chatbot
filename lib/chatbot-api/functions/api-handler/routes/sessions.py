@@ -3,6 +3,7 @@ import genai_core.types
 import genai_core.auth
 from aws_lambda_powertools import Logger, Tracer
 from aws_lambda_powertools.event_handler.api_gateway import Router
+from genai_core.auth import role_permission
 
 tracer = Tracer()
 router = Router()
@@ -11,6 +12,7 @@ logger = Logger()
 
 @router.get("/sessions")
 @tracer.capture_method
+@role_permission(["admin", "workspaces_manager", "workspaces_user", "chatbot_user"])
 def get_sessions():
     user_id = genai_core.auth.get_user_id(router)
     if user_id is None:
@@ -35,6 +37,7 @@ def get_sessions():
 
 @router.get("/sessions/<session_id>")
 @tracer.capture_method
+@role_permission(["admin", "workspaces_manager", "workspaces_user", "chatbot_user"])
 def get_session(session_id: str):
     user_id = genai_core.auth.get_user_id(router)
     if user_id is None:
@@ -66,6 +69,7 @@ def get_session(session_id: str):
 
 @router.delete("/sessions")
 @tracer.capture_method
+@role_permission(["admin", "workspaces_manager", "workspaces_user", "chatbot_user"])
 def delete_user_sessions():
     user_id = genai_core.auth.get_user_id(router)
     if user_id is None:
@@ -78,6 +82,7 @@ def delete_user_sessions():
 
 @router.delete("/sessions/<session_id>")
 @tracer.capture_method
+@role_permission(["admin", "workspaces_manager", "workspaces_user", "chatbot_user"])
 def delete_session(session_id: str):
     user_id = genai_core.auth.get_user_id(router)
     if user_id is None:

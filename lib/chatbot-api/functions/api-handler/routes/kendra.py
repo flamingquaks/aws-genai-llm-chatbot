@@ -3,6 +3,7 @@ import genai_core.kendra
 from pydantic import BaseModel
 from aws_lambda_powertools import Logger, Tracer
 from aws_lambda_powertools.event_handler.api_gateway import Router
+from genai_core.auth import role_permission
 
 tracer = Tracer()
 router = Router()
@@ -15,6 +16,7 @@ class KendraDataSynchRequest(BaseModel):
 
 @router.get("/rag/engines/kendra/indexes")
 @tracer.capture_method
+@role_permission(["admin", "workspaces_manager", "workspaces_user"])
 def kendra_indexes():
     indexes = genai_core.kendra.get_kendra_indexes()
 
@@ -23,6 +25,7 @@ def kendra_indexes():
 
 @router.post("/rag/engines/kendra/data-sync")
 @tracer.capture_method
+@role_permission(["admin", "workspaces_manager"])
 def kendra_data_sync():
     data: dict = router.current_event.json_body
     request = KendraDataSynchRequest(**data)
@@ -34,6 +37,7 @@ def kendra_data_sync():
 
 @router.get("/rag/engines/kendra/data-sync/<workspace_id>")
 @tracer.capture_method
+@role_permission(["admin", "workspaces_manager"])
 def kendra_is_syncing(workspace_id: str):
     result = genai_core.kendra.kendra_is_syncing(workspace_id=workspace_id)
 
