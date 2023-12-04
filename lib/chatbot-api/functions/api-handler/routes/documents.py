@@ -3,6 +3,7 @@ import genai_core.types
 import genai_core.upload
 import genai_core.documents
 from pydantic import BaseModel
+from genai_core.auth import role_permission
 from aws_lambda_powertools import Logger, Tracer
 from aws_lambda_powertools.event_handler.api_gateway import Router
 
@@ -73,6 +74,7 @@ allowed_extensions = set(
 @tracer.capture_method
 def file_upload(workspace_id: str):
     data: dict = router.current_event.json_body
+
     request = FileUploadRequest(**data)
 
     _, extension = os.path.splitext(request.fileName)
@@ -86,6 +88,7 @@ def file_upload(workspace_id: str):
 
 @router.get("/workspaces/<workspace_id>/documents/<document_type>")
 @tracer.capture_method
+@role_permission(["admin"])
 def get_documents(workspace_id: str, document_type: str):
     query_string = router.current_event.query_string_parameters or {}
     last_document_id = query_string.get("lastDocumentId", None)
