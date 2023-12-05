@@ -5,7 +5,7 @@ from typing import List
 from pydantic import BaseModel
 from aws_lambda_powertools import Logger, Tracer
 from aws_lambda_powertools.event_handler.api_gateway import Router
-from genai_core.auth import role_permission
+from genai_core.auth import approved_roles
 
 tracer = Tracer()
 router = Router()
@@ -20,7 +20,7 @@ class EmbeddingsRequest(BaseModel):
 
 @router.get("/embeddings/models")
 @tracer.capture_method
-@role_permission(["admin", "workspaces_manager", "workspaces_user"])
+@approved_roles(router, ["admin", "workspaces_manager", "workspaces_user"])
 def models():
     models = genai_core.embeddings.get_embeddings_models()
 
@@ -29,7 +29,7 @@ def models():
 
 @router.post("/embeddings")
 @tracer.capture_method
-@role_permission(["admin", "workspaces_manager", "workspaces_user"])
+@approved_roles(router, ["admin", "workspaces_manager", "workspaces_user"])
 def embeddings():
     data: dict = router.current_event.json_body
     request = EmbeddingsRequest(**data)

@@ -3,6 +3,7 @@ import genai_core.types
 import genai_core.kendra
 import genai_core.parameters
 import genai_core.workspaces
+from genai_core.auth import approved_roles
 from pydantic import BaseModel
 from aws_lambda_powertools import Logger, Tracer
 from aws_lambda_powertools.event_handler.api_gateway import Router
@@ -57,6 +58,7 @@ class CreateWorkspaceKendraRequest(BaseModel):
 
 @router.get("/workspaces")
 @tracer.capture_method
+@approved_roles(router, ["admin", "workspaces_manager", "workspaces_user", "chatbot_user"])
 def workspaces():
     workspaces = genai_core.workspaces.list_workspaces()
 
@@ -67,6 +69,7 @@ def workspaces():
 
 @router.get("/workspaces/<workspace_id>")
 @tracer.capture_method
+@approved_roles(router, ["admin", "workspaces_manager", "workspaces_user"])
 def workspace(workspace_id: str):
     workspace = genai_core.workspaces.get_workspace(workspace_id)
 
@@ -80,6 +83,7 @@ def workspace(workspace_id: str):
 
 @router.delete("/workspaces/<workspace_id>")
 @tracer.capture_method
+@approved_roles(router, ["admin", "workspaces_manager"])
 def workspace(workspace_id: str):
     genai_core.workspaces.delete_workspace(workspace_id)
 
@@ -88,6 +92,7 @@ def workspace(workspace_id: str):
 
 @router.put("/workspaces")
 @tracer.capture_method
+@approved_roles(router, ["admin", "workspaces_manager"])
 def create_workspace():
     data: dict = router.current_event.json_body
     generic_request = GenericCreateWorkspaceRequest(**data)

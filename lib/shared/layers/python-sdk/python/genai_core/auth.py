@@ -1,7 +1,5 @@
 from functools import wraps
-from aws_lambda_powertools.event_handler.api_gateway import Router
 
-router = Router()
 
 def get_user_id(router):
     user_id = (
@@ -24,14 +22,15 @@ def get_user_role(router):
 
     return user_role
 
-def role_permission(approved_roles:[]):
+def approved_roles(router, roles:[]):
     def decorator(func):
         @wraps(func)
         def wrapper(*args, **kargs):
             user_role = get_user_role(router)
-            if user_role in approved_roles:
+            if user_role in roles:
                 return func(*args, **kargs)
             else:
                 return {"ok": False, "error": "Unauthorized"}
         return wrapper
+    return decorator
     
