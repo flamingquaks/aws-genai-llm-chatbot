@@ -12,7 +12,6 @@ permissions = UserPermissions(router)
 @router.get("/models")
 @tracer.capture_method
 @permissions.approved_roles(
-    router,
     [
         permissions.ADMIN_ROLE,
         permissions.WORKSPACES_MANAGER_ROLE,
