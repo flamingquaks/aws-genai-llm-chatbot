@@ -3,11 +3,12 @@ import genai_core.kendra
 from pydantic import BaseModel
 from aws_lambda_powertools import Logger, Tracer
 from aws_lambda_powertools.event_handler.api_gateway import Router
-from genai_core.auth import approved_roles
+from genai_core.auth import UserPermissions
 
 tracer = Tracer()
 router = Router()
 logger = Logger()
+permissions = UserPermissions(router)
 
 
 class KendraDataSynchRequest(BaseModel):
@@ -16,7 +17,13 @@ class KendraDataSynchRequest(BaseModel):
 
 @router.get("/rag/engines")
 @tracer.capture_method
-@approved_roles(router, ["admin", "workspaces_manager", "workspaces_user"])
+@permissions.approved_roles(
+    [
+        permissions.ADMIN_ROLE,
+        permissions.WORKSPACES_MANAGER_ROLE,
+        permissions.WORKSPACES_USER_ROLE,
+    ]
+)
 def engines():
     config = genai_core.parameters.get_config()
 

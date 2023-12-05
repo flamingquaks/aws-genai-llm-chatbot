@@ -3,7 +3,7 @@ import genai_core.types
 import genai_core.kendra
 import genai_core.parameters
 import genai_core.workspaces
-from genai_core.auth import approved_roles
+from genai_core.auth import UserPermissions
 from pydantic import BaseModel
 from aws_lambda_powertools import Logger, Tracer
 from aws_lambda_powertools.event_handler.api_gateway import Router
@@ -11,6 +11,7 @@ from aws_lambda_powertools.event_handler.api_gateway import Router
 tracer = Tracer()
 router = Router()
 logger = Logger()
+permissions = UserPermissions(router)
 
 name_regex = re.compile(r"^[\w+_-]+$")
 
@@ -58,7 +59,14 @@ class CreateWorkspaceKendraRequest(BaseModel):
 
 @router.get("/workspaces")
 @tracer.capture_method
-@approved_roles(router, ["admin", "workspaces_manager", "workspaces_user", "chatbot_user"])
+@permissions.approved_roles(
+    [
+        permissions.ADMIN_ROLE,
+        permissions.WORKSPACES_MANAGER_ROLE,
+        permissions.WORKSPACES_USER_ROLE,
+        permissions.CHATBOT_USER_ROLE,
+    ]
+)
 def workspaces():
     workspaces = genai_core.workspaces.list_workspaces()
 
@@ -69,7 +77,13 @@ def workspaces():
 
 @router.get("/workspaces/<workspace_id>")
 @tracer.capture_method
-@approved_roles(router, ["admin", "workspaces_manager", "workspaces_user"])
+@permissions.approved_roles(
+    [
+        permissions.ADMIN_ROLE,
+        permissions.WORKSPACES_MANAGER_ROLE,
+        permissions.WORKSPACES_USER_ROLE,
+    ]
+)
 def workspace(workspace_id: str):
     workspace = genai_core.workspaces.get_workspace(workspace_id)
 
@@ -83,7 +97,9 @@ def workspace(workspace_id: str):
 
 @router.delete("/workspaces/<workspace_id>")
 @tracer.capture_method
-@approved_roles(router, ["admin", "workspaces_manager"])
+@permissions.approved_roles(
+    [permissions.ADMIN_ROLE, permissions.WORKSPACES_MANAGER_ROLE]
+)
 def workspace(workspace_id: str):
     genai_core.workspaces.delete_workspace(workspace_id)
 
@@ -92,7 +108,9 @@ def workspace(workspace_id: str):
 
 @router.put("/workspaces")
 @tracer.capture_method
-@approved_roles(router, ["admin", "workspaces_manager"])
+@permissions.approved_roles(
+    [permissions.ADMIN_ROLE, permissions.WORKSPACES_MANAGER_ROLE]
+)
 def create_workspace():
     data: dict = router.current_event.json_body
     generic_request = GenericCreateWorkspaceRequest(**data)

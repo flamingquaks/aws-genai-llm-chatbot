@@ -3,16 +3,24 @@ import genai_core.types
 import genai_core.auth
 from aws_lambda_powertools import Logger, Tracer
 from aws_lambda_powertools.event_handler.api_gateway import Router
-from genai_core.auth import approved_roles
+from genai_core.auth import UserPermissions
 
 tracer = Tracer()
 router = Router()
 logger = Logger()
+permissions = UserPermissions(router)
 
 
 @router.get("/sessions")
 @tracer.capture_method
-@approved_roles(router, ["admin", "workspaces_manager", "workspaces_user", "chatbot_user"])
+@permissions.approved_roles(
+    [
+        permissions.ADMIN_ROLE,
+        permissions.WORKSPACES_MANAGER_ROLE,
+        permissions.WORKSPACES_USER_ROLE,
+        permissions.CHATBOT_USER_ROLE,
+    ]
+)
 def get_sessions():
     user_id = genai_core.auth.get_user_id(router)
     if user_id is None:
@@ -37,7 +45,14 @@ def get_sessions():
 
 @router.get("/sessions/<session_id>")
 @tracer.capture_method
-@approved_roles(router, ["admin", "workspaces_manager", "workspaces_user", "chatbot_user"])
+@permissions.approved_roles(
+    [
+        permissions.ADMIN_ROLE,
+        permissions.WORKSPACES_MANAGER_ROLE,
+        permissions.WORKSPACES_USER_ROLE,
+        permissions.CHATBOT_USER_ROLE,
+    ]
+)
 def get_session(session_id: str):
     user_id = genai_core.auth.get_user_id(router)
     if user_id is None:
@@ -69,7 +84,14 @@ def get_session(session_id: str):
 
 @router.delete("/sessions")
 @tracer.capture_method
-@approved_roles(router, ["admin", "workspaces_manager", "workspaces_user", "chatbot_user"])
+@permissions.approved_roles(
+    [
+        permissions.ADMIN_ROLE,
+        permissions.WORKSPACES_MANAGER_ROLE,
+        permissions.WORKSPACES_USER_ROLE,
+        permissions.CHATBOT_USER_ROLE,
+    ]
+)
 def delete_user_sessions():
     user_id = genai_core.auth.get_user_id(router)
     if user_id is None:
@@ -82,7 +104,14 @@ def delete_user_sessions():
 
 @router.delete("/sessions/<session_id>")
 @tracer.capture_method
-@approved_roles(router, ["admin", "workspaces_manager", "workspaces_user", "chatbot_user"])
+@permissions.approved_roles(
+    [
+        permissions.ADMIN_ROLE,
+        permissions.WORKSPACES_MANAGER_ROLE,
+        permissions.WORKSPACES_USER_ROLE,
+        permissions.CHATBOT_USER_ROLE,
+    ]
+)
 def delete_session(session_id: str):
     user_id = genai_core.auth.get_user_id(router)
     if user_id is None:

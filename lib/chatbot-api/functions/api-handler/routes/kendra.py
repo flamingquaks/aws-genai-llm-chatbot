@@ -3,11 +3,12 @@ import genai_core.kendra
 from pydantic import BaseModel
 from aws_lambda_powertools import Logger, Tracer
 from aws_lambda_powertools.event_handler.api_gateway import Router
-from genai_core.auth import approved_roles
+from genai_core.auth import UserPermissions
 
 tracer = Tracer()
 router = Router()
 logger = Logger()
+permissions = UserPermissions(router)
 
 
 class KendraDataSynchRequest(BaseModel):
@@ -16,7 +17,13 @@ class KendraDataSynchRequest(BaseModel):
 
 @router.get("/rag/engines/kendra/indexes")
 @tracer.capture_method
-@approved_roles(["admin", "workspaces_manager", "workspaces_user"])
+@permissions.approved_roles(
+    [
+        permissions.ADMIN_ROLE,
+        permissions.WORKSPACES_MANAGER_ROLE,
+        permissions.WORKSPACES_USER_ROLE,
+    ]
+)
 def kendra_indexes():
     indexes = genai_core.kendra.get_kendra_indexes()
 
@@ -25,7 +32,9 @@ def kendra_indexes():
 
 @router.post("/rag/engines/kendra/data-sync")
 @tracer.capture_method
-@approved_roles(router, ["admin", "workspaces_manager"])
+@permissions.approved_roles(
+    [permissions.ADMIN_ROLE, permissions.WORKSPACES_MANAGER_ROLE]
+)
 def kendra_data_sync():
     data: dict = router.current_event.json_body
     request = KendraDataSynchRequest(**data)
@@ -37,7 +46,9 @@ def kendra_data_sync():
 
 @router.get("/rag/engines/kendra/data-sync/<workspace_id>")
 @tracer.capture_method
-@approved_roles(router, ["admin", "workspaces_manager"])
+@permissions.approved_roles(
+    [permissions.ADMIN_ROLE, permissions.WORKSPACES_MANAGER_ROLE]
+)
 def kendra_is_syncing(workspace_id: str):
     result = genai_core.kendra.kendra_is_syncing(workspace_id=workspace_id)
 

@@ -3,13 +3,14 @@ import genai_core.types
 import genai_core.upload
 import genai_core.documents
 from pydantic import BaseModel
-from genai_core.auth import approved_roles
+from genai_core.auth import UserPermissions
 from aws_lambda_powertools import Logger, Tracer
 from aws_lambda_powertools.event_handler.api_gateway import Router
 
 tracer = Tracer()
 router = Router()
 logger = Logger()
+permissions = UserPermissions(router)
 
 
 class FileUploadRequest(BaseModel):
@@ -32,17 +33,18 @@ class WebsiteDocumentRequest(BaseModel):
     followLinks: bool
     limit: int
 
+
 class RssFeedDocumentRequest(BaseModel):
     address: str
     limit: int
     title: str
     followLinks: bool
 
+
 class RssFeedCrawlerUpdateRequest(BaseModel):
     documentType: str
     followLinks: bool
     limit: int
-
 
 
 allowed_extensions = set(
@@ -72,7 +74,9 @@ allowed_extensions = set(
 
 @router.post("/workspaces/<workspace_id>/documents/file-upload")
 @tracer.capture_method
-@approved_roles(router, ["admin", "workspaces_manager"])
+@permissions.approved_roles(
+    [permissions.ADMIN_ROLE, permissions.WORKSPACES_MANAGER_ROLE]
+)
 def file_upload(workspace_id: str):
     data: dict = router.current_event.json_body
 
@@ -89,7 +93,9 @@ def file_upload(workspace_id: str):
 
 @router.get("/workspaces/<workspace_id>/documents/<document_type>")
 @tracer.capture_method
-@approved_roles(router, ["admin", "workspaces_manager"])
+@permissions.approved_roles(
+    [permissions.ADMIN_ROLE, permissions.WORKSPACES_MANAGER_ROLE]
+)
 def get_documents(workspace_id: str, document_type: str):
     query_string = router.current_event.query_string_parameters or {}
     last_document_id = query_string.get("lastDocumentId", None)
@@ -109,28 +115,36 @@ def get_documents(workspace_id: str, document_type: str):
 
 @router.get("/workspaces/<workspace_id>/documents/<document_id>/detail")
 @tracer.capture_method
-@approved_roles(router, ["admin", "workspaces_manager", "workspaces_user"])
+@permissions.approved_roles(
+    [permissions.ADMIN_ROLE, permissions.WORKSPACES_MANAGER_ROLE]
+)
 def get_document_details(workspace_id: str, document_id: str):
     result = genai_core.documents.get_document(workspace_id, document_id)
 
     return {
         "ok": True,
-        "data": {
-            "items":[_convert_document(result)],
-            "lastDocumentId": None
-        }
+        "data": {"items": [_convert_document(result)], "lastDocumentId": None},
     }
+
 
 @router.get("/workspaces/<workspace_id>/documents/<document_id>/posts")
 @tracer.capture_method
-@approved_roles(router, ["admin", "workspaces_manager", "workspaces_user"])
+@permissions.approved_roles(
+    [
+        permissions.ADMIN_ROLE,
+        permissions.WORKSPACES_MANAGER_ROLE,
+        permissions.WORKSPACES_USER_ROLE,
+    ]
+)
 def get_rss_posts(workspace_id: str, document_id: str):
     query_string = router.current_event.query_string_parameters or {}
     last_document_id = query_string.get("lastDocumentId", None)
 
     result = genai_core.documents.list_documents(
-        workspace_id, "rsspost", last_document_id=last_document_id, 
-        parent_document_id=document_id
+        workspace_id,
+        "rsspost",
+        last_document_id=last_document_id,
+        parent_document_id=document_id,
     )
 
     return {
@@ -141,40 +155,52 @@ def get_rss_posts(workspace_id: str, document_id: str):
         },
     }
 
+
 @router.get("/workspaces/<workspace_id>/documents/<document_id>/enable")
 @tracer.capture_method
-@approved_roles(router, ["admin", "workspaces_manager"])
+@permissions.approved_roles(
+    [permissions.ADMIN_ROLE, permissions.WORKSPACES_MANAGER_ROLE]
+)
 def enable_document(workspace_id: str, document_id: str):
-    result = genai_core.documents.enable_document_subscription(workspace_id, document_id)
+    result = genai_core.documents.enable_document_subscription(
+        workspace_id, document_id
+    )
 
     return {
         "ok": True,
         "data": {
             "workspaceId": workspace_id,
             "documentId": document_id,
-            "status": "enabled"
-        }
+            "status": "enabled",
+        },
     }
+
 
 @router.get("/workspaces/<workspace_id>/documents/<document_id>/disable")
 @tracer.capture_method
-@approved_roles(router, ["admin", "workspaces_manager"])
+@permissions.approved_roles(
+    [permissions.ADMIN_ROLE, permissions.WORKSPACES_MANAGER_ROLE]
+)
 def disable_document(workspace_id: str, document_id: str):
-    result = genai_core.documents.disable_document_subscription(workspace_id, document_id)
+    result = genai_core.documents.disable_document_subscription(
+        workspace_id, document_id
+    )
 
     return {
         "ok": True,
         "data": {
             "workspaceId": workspace_id,
             "documentId": document_id,
-            "status": "disabled"
-        }
+            "status": "disabled",
+        },
     }
 
 
 @router.post("/workspaces/<workspace_id>/documents/<document_type>")
 @tracer.capture_method
-@approved_roles(router, ["admin", "workspaces_manager"])
+@permissions.approved_roles(
+    [permissions.ADMIN_ROLE, permissions.WORKSPACES_MANAGER_ROLE]
+)
 def add_document(workspace_id: str, document_type: str):
     data: dict = router.current_event.json_body
 
@@ -238,11 +264,11 @@ def add_document(workspace_id: str, document_type: str):
                 "documentId": result["document_id"],
             },
         }
-    
+
     elif document_type == "rssfeed":
         request = RssFeedDocumentRequest(**data)
         request.address = request.address.strip()[:10000]
-        path=request.address
+        path = request.address
 
         result = genai_core.documents.create_document(
             workspace_id=workspace_id,
@@ -260,12 +286,13 @@ def add_document(workspace_id: str, document_type: str):
             "data": {
                 "workspaceId": result["workspace_id"],
                 "documentId": result["document_id"],
-            }
+            },
         }
-    
+
+
 @router.patch("/workspaces/<workspace_id>/documents/<document_id>/")
 @tracer.capture_method
-@approved_roles(router, ["admin", "workspaces_manager"])
+@permissions.approved_roles([permissions.ADMIN_ROLE, permissions.WORKSPACES_MANAGER_ROLE])
 def update_document(workspace_id: str, document_id: str):
     data: dict = router.current_event.json_body
     if "documentType" in data:
@@ -278,11 +305,7 @@ def update_document(workspace_id: str, document_id: str):
                 follow_links=request.followLinks,
                 limit=request.limit,
             )
-            return {
-                "ok": True,
-                "data": "done"
-            }
-
+            return {"ok": True, "data": "done"}
 
 
 def _convert_document(document: dict):
@@ -306,9 +329,11 @@ def _convert_document(document: dict):
         "createdAt": document["created_at"],
         "updatedAt": document.get("updated_at", None),
         "rssFeedId": document.get("rss_feed_id", None),
-        "rssLastCheckedAt": document.get("rss_last_checked",None),
-        "crawlerProperties":  {
-            "followLinks": document.get("crawler_properties").get("follow_links",None),
-            "limit": document.get("crawler_properties").get("limit",None)
-        } if document.get("crawler_properties", None) != None else None
+        "rssLastCheckedAt": document.get("rss_last_checked", None),
+        "crawlerProperties": {
+            "followLinks": document.get("crawler_properties").get("follow_links", None),
+            "limit": document.get("crawler_properties").get("limit", None),
+        }
+        if document.get("crawler_properties", None) != None
+        else None,
     }
