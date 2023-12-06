@@ -15,6 +15,9 @@ export class Authentication extends Construct {
       removalPolicy: cdk.RemovalPolicy.DESTROY,
       selfSignUpEnabled: false,
       autoVerify: { email: true, phone: true },
+      userVerification: {
+        emailStyle: cognito.VerificationEmailStyle.LINK
+      },
       signInAliases: {
         email: true,
       },

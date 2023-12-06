@@ -103,6 +103,7 @@ export class RestApi extends Construct {
             ?.bucketName ?? "",
         RSS_FEED_INGESTOR_FUNCTION:
           props.ragEngines?.dataImport.rssIngestorFunction?.functionArn ?? "",
+        COGNITO_USER_POOL_ID: props.userPool.userPoolId,
       },
     });
 

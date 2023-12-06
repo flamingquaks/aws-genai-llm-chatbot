@@ -30,6 +30,13 @@ class UserPermissions:
     WORKSPACES_USER_ROLE = "workspaces_user"
     CHATBOT_USER_ROLE = "chatbot_user"
 
+    VALID_ROLES = [
+        ADMIN_ROLE,
+        WORKSPACES_MANAGER_ROLE,
+        WORKSPACES_USER_ROLE,
+        CHATBOT_USER_ROLE,
+    ]
+
     def __init__(self, router):
         self.router = router
 
@@ -93,3 +100,14 @@ class UserPermissions:
             return wrapper
 
         return decorator
+
+    def admin_only(self, func):
+        """Validates the user calling the endpoint is an admin
+        and returns the function being called for execution
+
+        Returns:
+            function: If the user is an admin, the function being called will be returned for execution
+            dict: If the user is not an admin, a response of `{"ok": False, "error": "Unauthorized"}` will be returned
+            as the response.
+        """
+        return self.approved_roles([self.ADMIN_ROLE])(func)
