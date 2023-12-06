@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   Authenticator,
   Heading,
@@ -7,7 +7,7 @@ import {
   useTheme,
 } from "@aws-amplify/ui-react";
 import App from "../app";
-import { Amplify, Auth } from "aws-amplify";
+import { Amplify, Auth, Hub } from "aws-amplify";
 import { AppConfig, UserRole } from "../common/types";
 import { AppContext } from "../common/app-context";
 import { UserContext, userContextDefault } from "../common/user-context";
@@ -17,6 +17,7 @@ import { Mode } from "@cloudscape-design/global-styles";
 import "@aws-amplify/ui-react/styles.css";
 import { CHATBOT_NAME } from "../common/constants";
 
+
 export default function AppConfigured() {
   const { tokens } = useTheme();
   const [config, setConfig] = useState<AppConfig | null>(null);
@@ -24,18 +25,20 @@ export default function AppConfigured() {
   const [theme, setTheme] = useState(StorageHelper.getTheme());
   const [userRole, setUserRole] = useState(userContextDefault.userRole);
 
-  // Customizing Auth SignIn Hook to Set Role
-  const authenticationServices = {
-    async handleSignIn(formData: { username: string; password: string }) {
-      const { username, password } = formData;
-      const signIn = await Auth.signIn({
-        username,
-        password,
-      });
-      setUserRole(signIn.attributes["custom:userRole"] as UserRole);
-      return signIn;
-    },
-  };
+
+  const updateRole = useCallback((event: string) => {
+    if (event === "signIn" || event === "configured") {
+      if (userRole === UserRole.UNDEFINED) {
+        Auth.currentAuthenticatedUser().then((user) => {
+          setUserRole(user.attributes["custom:userRole"] as UserRole);
+        }).catch(() => {
+          setUserRole(UserRole.UNDEFINED)
+        })
+      }
+    } else if (event === "signOut") {
+      setUserRole(UserRole.UNDEFINED)
+    }
+  }, [userRole, setUserRole])
 
   useEffect(() => {
     (async () => {
@@ -67,18 +70,20 @@ export default function AppConfigured() {
           }
         }
         setConfig(currentConfig);
-        try {
-          const user = await Auth.currentAuthenticatedUser();
-          setUserRole(user.attributes["custom:userRole"] as UserRole);
-        } catch (e) {
-          setUserRole(UserRole.UNDEFINED);
-        }
       } catch (e) {
         console.error(e);
         setError(true);
       }
     })();
   }, []);
+
+  useEffect(() => {
+    Hub.listen('auth', (authMessage) => {
+      updateRole(authMessage.payload.event);
+    })
+  }, [updateRole])
+
+
 
   useEffect(() => {
     const observer = new MutationObserver((mutations) => {
@@ -160,7 +165,6 @@ export default function AppConfigured() {
         >
           <Authenticator
             hideSignUp={true}
-            services={authenticationServices}
             components={{
               SignIn: {
                 Header: () => {

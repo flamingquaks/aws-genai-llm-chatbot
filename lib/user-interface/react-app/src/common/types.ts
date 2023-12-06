@@ -40,7 +40,7 @@ export enum UserRole {
   WORKSPACES_MANAGER = "workspaces_manager",
   WORKSPACES_USER = "workspaces_user",
   CHATBOT_USER = "chatbot_user",
-  UNDEFINED = "CHATBOT_USER",
+  UNDEFINED = "undefined",
 }
 
 export interface NavigationPanelState {
