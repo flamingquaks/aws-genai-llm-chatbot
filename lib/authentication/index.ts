@@ -16,7 +16,7 @@ export class Authentication extends Construct {
       selfSignUpEnabled: false,
       autoVerify: { email: true, phone: true },
       userVerification: {
-        emailStyle: cognito.VerificationEmailStyle.LINK
+        emailStyle: cognito.VerificationEmailStyle.LINK,
       },
       signInAliases: {
         email: true,
