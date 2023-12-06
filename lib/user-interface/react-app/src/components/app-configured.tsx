@@ -17,28 +17,25 @@ import { Mode } from "@cloudscape-design/global-styles";
 import "@aws-amplify/ui-react/styles.css";
 import { CHATBOT_NAME } from "../common/constants";
 
-
 export default function AppConfigured() {
   const { tokens } = useTheme();
   const [config, setConfig] = useState<AppConfig | null>(null);
   const [error, setError] = useState<boolean | null>(null);
   const [theme, setTheme] = useState(StorageHelper.getTheme());
-  const [userRole, setUserRole] = useState(userContextDefault.userRole)
-
+  const [userRole, setUserRole] = useState(userContextDefault.userRole);
 
   // Customizing Auth SignIn Hook to Set Role
-   const authenticationServices = {
-    async handleSignIn(formData: { username: string; password: string; }) {
+  const authenticationServices = {
+    async handleSignIn(formData: { username: string; password: string }) {
       const { username, password } = formData;
       const signIn = await Auth.signIn({
         username,
-        password
-      })
-      setUserRole(signIn.attributes['custom:userRole'] as UserRole);
+        password,
+      });
+      setUserRole(signIn.attributes["custom:userRole"] as UserRole);
       return signIn;
-    }
-  }
-
+    },
+  };
 
   useEffect(() => {
     (async () => {
@@ -72,19 +69,16 @@ export default function AppConfigured() {
         setConfig(currentConfig);
         try {
           const user = await Auth.currentAuthenticatedUser();
-          setUserRole(user.attributes['custom:userRole'] as UserRole);
-        }catch(e){
-          setUserRole(UserRole.UNDEFINED)
+          setUserRole(user.attributes["custom:userRole"] as UserRole);
+        } catch (e) {
+          setUserRole(UserRole.UNDEFINED);
         }
-
       } catch (e) {
         console.error(e);
         setError(true);
       }
     })();
   }, []);
-
-
 
   useEffect(() => {
     const observer = new MutationObserver((mutations) => {

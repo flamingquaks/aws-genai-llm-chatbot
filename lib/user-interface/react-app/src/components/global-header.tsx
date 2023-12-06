@@ -11,12 +11,11 @@ import { CHATBOT_NAME } from "../common/constants";
 import { UserContext } from "../common/user-context";
 import { UserRole } from "../common/types";
 
-
 export default function GlobalHeader() {
   const onFollow = useOnFollow();
   const [userName, setUserName] = useState<string | null>(null);
   const [theme, setTheme] = useState<Mode>(StorageHelper.getTheme());
-  const { setUserRole } = useContext(UserContext)
+  const { setUserRole } = useContext(UserContext);
 
   useEffect(() => {
     (async () => {
@@ -24,7 +23,7 @@ export default function GlobalHeader() {
 
       if (!result || Object.keys(result).length === 0) {
         Auth.signOut();
-        setUserRole(UserRole.UNDEFINED)
+        setUserRole(UserRole.UNDEFINED);
       }
       const userName = result?.attributes?.email;
       setUserName(userName);
@@ -46,8 +45,7 @@ export default function GlobalHeader() {
   }) => {
     if (detail.id === "signout") {
       Auth.signOut();
-      setUserRole(UserRole.UNDEFINED)
-
+      setUserRole(UserRole.UNDEFINED);
     }
   };
 

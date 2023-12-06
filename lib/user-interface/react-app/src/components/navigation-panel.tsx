@@ -12,11 +12,11 @@ import { CHATBOT_NAME } from "../common/constants";
 
 export default function NavigationPanel() {
   const appContext = useContext(AppContext);
-  const userContext = useContext(UserContext)
+  const userContext = useContext(UserContext);
   const onFollow = useOnFollow();
   const [navigationPanelState, setNavigationPanelState] =
     useNavigationPanelState();
-  const [items, setItems] = useState<SideNavigationProps.Item[]>([])
+  const [items, setItems] = useState<SideNavigationProps.Item[]>([]);
 
   useEffect(() => {
     const items: SideNavigationProps.Item[] = [
@@ -65,12 +65,12 @@ export default function NavigationPanel() {
       const crossEncodersItems: SideNavigationProps.Item[] = appContext?.config
         .cross_encoders_enabled
         ? [
-          {
-            type: "link",
-            text: "Cross-encoders",
-            href: "/rag/cross-encoders",
-          },
-        ]
+            {
+              type: "link",
+              text: "Cross-encoders",
+              href: "/rag/cross-encoders",
+            },
+          ]
         : [];
 
       items.push({
@@ -105,10 +105,8 @@ export default function NavigationPanel() {
       }
     );
 
-    setItems(items)
-  
-  },[userContext, appContext])
-    
+    setItems(items);
+  }, [userContext, appContext]);
 
   const onChange = ({
     detail,

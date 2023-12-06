@@ -31,8 +31,6 @@ export interface AppConfig {
   };
 }
 
-
-
 export interface UserConfig {
   userRole: UserRole;
 }

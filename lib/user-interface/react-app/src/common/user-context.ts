@@ -1,18 +1,14 @@
-import { Dispatch, SetStateAction, createContext, } from "react";
+import { Dispatch, SetStateAction, createContext } from "react";
 import { UserRole } from "./types";
 
-
 export type UserContextValue = {
-  userRole: UserRole,
+  userRole: UserRole;
   setUserRole: Dispatch<SetStateAction<UserRole>>;
-}
+};
 
 export const userContextDefault: UserContextValue = {
-    userRole: UserRole.UNDEFINED,
-    setUserRole: () => {}
-  }
+  userRole: UserRole.UNDEFINED,
+  setUserRole: () => {},
+};
 
-export const UserContext = createContext(userContextDefault)
-
-
-
+export const UserContext = createContext(userContextDefault);
