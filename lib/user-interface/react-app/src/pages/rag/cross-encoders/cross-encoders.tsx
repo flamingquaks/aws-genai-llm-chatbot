@@ -22,16 +22,21 @@ import {
   CrossEncoderModelItem,
   LoadingStatus,
   ResultValue,
+  UserRole,
 } from "../../../common/types";
 import { ApiClient } from "../../../common/api-client/api-client";
 import { OptionsHelper } from "../../../common/helpers/options-helper";
 import { Utils } from "../../../common/utils";
 import React from "react";
 import { CHATBOT_NAME } from "../../../common/constants";
+import { useNavigate } from "react-router-dom";
+import { UserContext } from "../../../common/user-context";
 
 export default function CrossEncoders() {
   const onFollow = useOnFollow();
+  const navigate = useNavigate();
   const appContext = useContext(AppContext);
+  const userContext = useContext(UserContext);
   const [globalError, setGlobalError] = useState<string | undefined>(undefined);
   const [submitting, setSubmitting] = useState(false);
   const [crossEncoderModelsStatus, setCrossEncoderModelsStatus] =
@@ -47,6 +52,18 @@ export default function CrossEncoders() {
       }[]
     | null
   >(null);
+
+  useEffect(() => {
+    if (
+      ![
+        UserRole.ADMIN,
+        UserRole.WORKSPACES_MANAGER,
+        UserRole.WORKSPACES_USER,
+      ].includes(userContext.userRole)
+    ) {
+      navigate("/");
+    }
+  }, [userContext, navigate]);
 
   const { data, onChange, errors, validate } = useForm({
     initialValue: () => {

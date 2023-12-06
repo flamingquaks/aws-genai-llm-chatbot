@@ -17,7 +17,6 @@ import { Mode } from "@cloudscape-design/global-styles";
 import "@aws-amplify/ui-react/styles.css";
 import { CHATBOT_NAME } from "../common/constants";
 
-
 export default function AppConfigured() {
   const { tokens } = useTheme();
   const [config, setConfig] = useState<AppConfig | null>(null);
@@ -25,20 +24,24 @@ export default function AppConfigured() {
   const [theme, setTheme] = useState(StorageHelper.getTheme());
   const [userRole, setUserRole] = useState(userContextDefault.userRole);
 
-
-  const updateRole = useCallback((event: string) => {
-    if (event === "signIn" || event === "configured") {
-      if (userRole === UserRole.UNDEFINED) {
-        Auth.currentAuthenticatedUser().then((user) => {
-          setUserRole(user.attributes["custom:userRole"] as UserRole);
-        }).catch(() => {
-          setUserRole(UserRole.UNDEFINED)
-        })
+  const updateRole = useCallback(
+    (event: string) => {
+      if (event === "signIn" || event === "configured") {
+        if (userRole === UserRole.UNDEFINED) {
+          Auth.currentAuthenticatedUser()
+            .then((user) => {
+              setUserRole(user.attributes["custom:userRole"] as UserRole);
+            })
+            .catch(() => {
+              setUserRole(UserRole.UNDEFINED);
+            });
+        }
+      } else if (event === "signOut") {
+        setUserRole(UserRole.UNDEFINED);
       }
-    } else if (event === "signOut") {
-      setUserRole(UserRole.UNDEFINED)
-    }
-  }, [userRole, setUserRole])
+    },
+    [userRole, setUserRole]
+  );
 
   useEffect(() => {
     (async () => {
@@ -78,12 +81,10 @@ export default function AppConfigured() {
   }, []);
 
   useEffect(() => {
-    Hub.listen('auth', (authMessage) => {
+    Hub.listen("auth", (authMessage) => {
       updateRole(authMessage.payload.event);
-    })
-  }, [updateRole])
-
-
+    });
+  }, [updateRole]);
 
   useEffect(() => {
     const observer = new MutationObserver((mutations) => {
