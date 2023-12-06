@@ -5,22 +5,37 @@ import {
 import useOnFollow from "../common/hooks/use-on-follow";
 import { useNavigationPanelState } from "../common/hooks/use-navigation-panel-state";
 import { AppContext } from "../common/app-context";
-import { useContext, useState } from "react";
+import { UserRole } from "../common/types";
+import { UserContext } from "../common/user-context";
+import { useContext, useEffect, useState } from "react";
 import { CHATBOT_NAME } from "../common/constants";
 
 export default function NavigationPanel() {
   const appContext = useContext(AppContext);
+  const userContext = useContext(UserContext)
   const onFollow = useOnFollow();
   const [navigationPanelState, setNavigationPanelState] =
     useNavigationPanelState();
-  const [items] = useState<SideNavigationProps.Item[]>(() => {
+  const [items, setItems] = useState<SideNavigationProps.Item[]>([])
+
+  useEffect(() => {
     const items: SideNavigationProps.Item[] = [
       {
         type: "link",
         text: "Home",
         href: "/",
       },
-      {
+    ];
+    if (
+      userContext &&
+      [
+        UserRole.ADMIN,
+        UserRole.WORKSPACES_MANAGER,
+        UserRole.WORKSPACES_USER,
+        UserRole.CHATBOT_USER,
+      ].includes(userContext?.userRole)
+    )
+      items.push({
         type: "section",
         text: "Chatbot",
         items: [
@@ -36,19 +51,26 @@ export default function NavigationPanel() {
             href: "/chatbot/models",
           },
         ],
-      },
-    ];
+      });
 
-    if (appContext?.config.rag_enabled) {
+    if (
+      userContext &&
+      [
+        UserRole.ADMIN,
+        UserRole.WORKSPACES_MANAGER,
+        UserRole.WORKSPACES_USER,
+      ].includes(userContext.userRole) &&
+      appContext?.config.rag_enabled
+    ) {
       const crossEncodersItems: SideNavigationProps.Item[] = appContext?.config
         .cross_encoders_enabled
         ? [
-            {
-              type: "link",
-              text: "Cross-encoders",
-              href: "/rag/cross-encoders",
-            },
-          ]
+          {
+            type: "link",
+            text: "Cross-encoders",
+            href: "/rag/cross-encoders",
+          },
+        ]
         : [];
 
       items.push({
@@ -83,8 +105,10 @@ export default function NavigationPanel() {
       }
     );
 
-    return items;
-  });
+    setItems(items)
+  
+  },[userContext, appContext])
+    
 
   const onChange = ({
     detail,

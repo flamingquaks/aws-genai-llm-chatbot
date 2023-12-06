@@ -8,19 +8,37 @@ import {
 } from "@aws-amplify/ui-react";
 import App from "../app";
 import { Amplify, Auth } from "aws-amplify";
-import { AppConfig } from "../common/types";
+import { AppConfig, UserRole } from "../common/types";
 import { AppContext } from "../common/app-context";
+import { UserContext, userContextDefault } from "../common/user-context";
 import { Alert, StatusIndicator } from "@cloudscape-design/components";
 import { StorageHelper } from "../common/helpers/storage-helper";
 import { Mode } from "@cloudscape-design/global-styles";
 import "@aws-amplify/ui-react/styles.css";
 import { CHATBOT_NAME } from "../common/constants";
 
+
 export default function AppConfigured() {
   const { tokens } = useTheme();
   const [config, setConfig] = useState<AppConfig | null>(null);
   const [error, setError] = useState<boolean | null>(null);
   const [theme, setTheme] = useState(StorageHelper.getTheme());
+  const [userRole, setUserRole] = useState(userContextDefault.userRole)
+
+
+  // Customizing Auth SignIn Hook to Set Role
+   const authenticationServices = {
+    async handleSignIn(formData: { username: string; password: string; }) {
+      const { username, password } = formData;
+      const signIn = await Auth.signIn({
+        username,
+        password
+      })
+      setUserRole(signIn.attributes['custom:userRole'] as UserRole);
+      return signIn;
+    }
+  }
+
 
   useEffect(() => {
     (async () => {
@@ -28,7 +46,6 @@ export default function AppConfigured() {
         const result = await fetch("/aws-exports.json");
         const awsExports = await result.json();
         const currentConfig = Amplify.configure(awsExports) as AppConfig | null;
-
         if (currentConfig?.config.auth_federated_provider?.auto_redirect) {
           let authenticated = false;
           try {
@@ -49,18 +66,25 @@ export default function AppConfigured() {
             } else {
               Auth.federatedSignIn({ customProvider: federatedProvider.name });
             }
-
             return;
           }
         }
-
         setConfig(currentConfig);
+        try {
+          const user = await Auth.currentAuthenticatedUser();
+          setUserRole(user.attributes['custom:userRole'] as UserRole);
+        }catch(e){
+          setUserRole(UserRole.UNDEFINED)
+        }
+
       } catch (e) {
         console.error(e);
         setError(true);
       }
     })();
   }, []);
+
+
 
   useEffect(() => {
     const observer = new MutationObserver((mutations) => {
@@ -132,33 +156,36 @@ export default function AppConfigured() {
 
   return (
     <AppContext.Provider value={config}>
-      <ThemeProvider
-        theme={{
-          name: "default-theme",
-          overrides: [defaultDarkModeOverride],
-        }}
-        colorMode={theme === Mode.Dark ? "dark" : "light"}
-      >
-        <Authenticator
-          hideSignUp={true}
-          components={{
-            SignIn: {
-              Header: () => {
-                return (
-                  <Heading
-                    padding={`${tokens.space.xl} 0 0 ${tokens.space.xl}`}
-                    level={3}
-                  >
-                    {CHATBOT_NAME}
-                  </Heading>
-                );
-              },
-            },
+      <UserContext.Provider value={{ setUserRole, userRole }}>
+        <ThemeProvider
+          theme={{
+            name: "default-theme",
+            overrides: [defaultDarkModeOverride],
           }}
+          colorMode={theme === Mode.Dark ? "dark" : "light"}
         >
-          <App />
-        </Authenticator>
-      </ThemeProvider>
+          <Authenticator
+            hideSignUp={true}
+            services={authenticationServices}
+            components={{
+              SignIn: {
+                Header: () => {
+                  return (
+                    <Heading
+                      padding={`${tokens.space.xl} 0 0 ${tokens.space.xl}`}
+                      level={3}
+                    >
+                      {CHATBOT_NAME}
+                    </Heading>
+                  );
+                },
+              },
+            }}
+          >
+            <App />
+          </Authenticator>
+        </ThemeProvider>
+      </UserContext.Provider>
     </AppContext.Provider>
   );
 }

@@ -31,6 +31,20 @@ export interface AppConfig {
   };
 }
 
+
+
+export interface UserConfig {
+  userRole: UserRole;
+}
+
+export enum UserRole {
+  ADMIN = "admin",
+  WORKSPACES_MANAGER = "workspaces_manager",
+  WORKSPACES_USER = "workspaces_user",
+  CHATBOT_USER = "chatbot_user",
+  UNDEFINED = "CHATBOT_USER",
+}
+
 export interface NavigationPanelState {
   collapsed?: boolean;
   collapsedSections?: Record<number, boolean>;
