@@ -94,7 +94,11 @@ def file_upload(workspace_id: str):
 @router.get("/workspaces/<workspace_id>/documents/<document_type>")
 @tracer.capture_method
 @permissions.approved_roles(
-    [permissions.ADMIN_ROLE, permissions.WORKSPACES_MANAGER_ROLE]
+    [
+        permissions.ADMIN_ROLE,
+        permissions.WORKSPACES_MANAGER_ROLE,
+        permissions.WORKSPACES_USER_ROLE,
+    ]
 )
 def get_documents(workspace_id: str, document_type: str):
     query_string = router.current_event.query_string_parameters or {}
@@ -116,7 +120,11 @@ def get_documents(workspace_id: str, document_type: str):
 @router.get("/workspaces/<workspace_id>/documents/<document_id>/detail")
 @tracer.capture_method
 @permissions.approved_roles(
-    [permissions.ADMIN_ROLE, permissions.WORKSPACES_MANAGER_ROLE]
+    [
+        permissions.ADMIN_ROLE,
+        permissions.WORKSPACES_MANAGER_ROLE,
+        permissions.WORKSPACES_USER_ROLE,
+    ]
 )
 def get_document_details(workspace_id: str, document_id: str):
     result = genai_core.documents.get_document(workspace_id, document_id)
@@ -292,7 +300,9 @@ def add_document(workspace_id: str, document_type: str):
 
 @router.patch("/workspaces/<workspace_id>/documents/<document_id>/")
 @tracer.capture_method
-@permissions.approved_roles([permissions.ADMIN_ROLE, permissions.WORKSPACES_MANAGER_ROLE])
+@permissions.approved_roles(
+    [permissions.ADMIN_ROLE, permissions.WORKSPACES_MANAGER_ROLE]
+)
 def update_document(workspace_id: str, document_id: str):
     data: dict = router.current_event.json_body
     if "documentType" in data:
