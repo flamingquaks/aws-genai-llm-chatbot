@@ -85,9 +85,9 @@ export function WorkspacesPageHeader({
             >
               View
             </RouterButton>
-            {![UserRole.ADMIN, UserRole.WORKSPACES_MANAGER].includes(
+            {[UserRole.ADMIN, UserRole.WORKSPACES_MANAGER].includes(
               userContext.userRole
-            ) ?? (
+            ) ? (
               <RouterButton
                 data-testid="header-btn-view-details"
                 disabled={!canDeleteWorkspace}
@@ -95,7 +95,7 @@ export function WorkspacesPageHeader({
               >
                 Delete
               </RouterButton>
-            )}
+            ) : null}
             {![UserRole.ADMIN, UserRole.WORKSPACES_MANAGER].includes(
               userContext.userRole
             ) ?? (

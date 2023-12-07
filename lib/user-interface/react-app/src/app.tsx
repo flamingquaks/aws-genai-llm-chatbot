@@ -16,6 +16,7 @@ import AddData from "./pages/rag/add-data/add-data";
 import "./styles/app.scss";
 import MultiChatPlayground from "./pages/chatbot/playground/multi-chat-playground";
 import RssFeed from "./pages/rag/workspace/rss-feed";
+import UsersDashboard from "./pages/admin/users/users-dashboard";
 
 function App() {
   return (
@@ -48,6 +49,9 @@ function App() {
               <Route path="workspaces/add-data" element={<AddData />} />
             </Route>
             <Route path="*" element={<NotFound />} />
+            <Route path="/admin" element={<Outlet />}>
+              <Route path="users" element={<UsersDashboard />} />
+            </Route>
           </Routes>
         </div>
       </BrowserRouter>

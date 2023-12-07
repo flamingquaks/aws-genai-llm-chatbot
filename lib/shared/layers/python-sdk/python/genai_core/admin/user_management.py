@@ -29,14 +29,41 @@ def create_user(name, email, role):
 def list_users():
     response = idp.list_users(
         UserPoolId=COGNITO_USER_POOL_ID,
-        AttributesToGet=["name", "email", "phone_number", "custom:role"],
     )
-    return response["Users"]
+    users = []
+    for user in response["Users"]:
+        user_data = {}
+        for attribute in user['Attributes']:
+            if attribute["Name"] == "name":
+                user_data["name"] = attribute["Value"]
+            if attribute["Name"] == "email":
+                user_data["email"] = attribute["Value"]
+            if attribute["Name"] == "phone_number":
+                user_data["phoneNumber"] = attribute["Value"]
+            if attribute["Name"] == "custom:userRole":
+                user_data["role"] = attribute["Value"]
+        user_data["enabled"] = user["Enabled"]
+        user_data["userStatus"] = user["UserStatus"]
+        users.append(user_data)
+    return users
 
 
 def get_user(email):
     response = idp.admin_get_user(UserPoolId=COGNITO_USER_POOL_ID, Username=email)
-    return response
+    if response["ResponseMetadata"]["HTTPStatusCode"] == 200:
+        user_data = {}
+        for attribute in response['Attributes']:
+            if attribute["Name"] == "name":
+                user_data["name"] = attribute["Value"]
+            if attribute["Name"] == "email":
+                user_data["email"] = attribute["Value"]
+            if attribute["Name"] == "phone_number":
+                user_data["phoneNumber"] = attribute["Value"]
+            if attribute["Name"] == "custom:userRole":
+                user_data["role"] = attribute["Value"]
+        user_data["enabled"] = response["Enabled"]
+        user_data["userStatus"] = response["UserStatus"]
+    return user_data
 
 
 def delete_user(email):

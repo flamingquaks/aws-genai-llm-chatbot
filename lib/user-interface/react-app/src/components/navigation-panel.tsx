@@ -94,7 +94,13 @@ export default function NavigationPanel() {
         ],
       });
     }
-
+    if (userContext && userContext.userRole == UserRole.ADMIN) {
+      items.push({
+        type: "section",
+        text: "Administration",
+        items: [{ type: "link", text: "Manage Users", href: "/admin/users" }],
+      });
+    }
     items.push(
       { type: "divider" },
       {

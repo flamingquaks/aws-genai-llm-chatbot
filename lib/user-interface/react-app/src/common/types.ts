@@ -258,10 +258,25 @@ export interface KendraIndexItem {
   external: boolean;
 }
 
-export interface UserApiData {
+export type UserStatus =
+  | "UNCONFIRMED"
+  | "CONFIRMED"
+  | "ARCHIVED"
+  | "COMPROMISED"
+  | "UNKNOWN"
+  | "RESET_REQUIRED"
+  | "FORCE_CHANGE_PASSWORD";
+
+export interface UserData {
   name?: string;
   email: string;
   phoneNumber?: string;
   role?: UserRole;
-  update_action?: string
+  update_action?: string;
+  userStatus?: UserStatus;
+  enabled?: boolean;
+}
+
+export interface UsersResult {
+  users: UserData[];
 }
