@@ -1,4 +1,3 @@
-import os
 from typing import Optional
 import genai_core.types
 import genai_core.admin.user_management
@@ -16,7 +15,7 @@ permissions = UserPermissions(router)
 class User(BaseModel):
     email: str
     phone_number: Optional[str] = None
-    role: Optional[str in UserPermissions.VALID_ROLES]
+    role: Optional[str]
     name: Optional[str]
     update_action: Optional[str] = None
 
@@ -52,13 +51,16 @@ def create_user():
     try:
         data: dict = router.current_event.json_body
         user = User(**data)
-        genai_core.admin.user_management.create_user(
-            email=user.email,
-            phone_number=user.phone_number,
-            role=user.role,
-            name=user.name,
-        )
-        return {"ok": True, "data": user}
+        if user.role in UserPermissions.approved_roles:
+            genai_core.admin.user_management.create_user(
+                email=user.email,
+                phone_number=user.phone_number,
+                role=user.role,
+                name=user.name,
+            )
+            return {"ok": True, "data": user}
+        else:
+            return { "ok": False, "error": "Invalid Role provided" }
     except Exception as e:
         logger.exception(e)
         return {"ok": False, "error": str(e)}
