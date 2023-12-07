@@ -1,3 +1,4 @@
+import urllib.parse
 from typing import Optional
 import genai_core.types
 import genai_core.admin.user_management
@@ -20,6 +21,10 @@ class User(BaseModel):
     update_action: Optional[str] = None
 
 
+def __parse_email(encoded_email):
+    return urllib.parse.unquote(encoded_email)
+
+
 @router.get("/admin/users")
 @tracer.capture_method
 @permissions.admin_only
@@ -37,7 +42,7 @@ def list_users():
 @permissions.admin_only
 def get_user(user_id: str):
     try:
-        user = genai_core.admin.user_management.get_user(user_id)
+        user = genai_core.admin.user_management.get_user(__parse_email(user_id))
         return {"ok": True, "data": user}
     except Exception as e:
         logger.exception(e)
@@ -51,7 +56,7 @@ def create_user():
     try:
         data: dict = router.current_event.json_body
         user = User(**data)
-        if user.role in UserPermissions.approved_roles:
+        if user.role in UserPermissions.VALID_ROLES:
             genai_core.admin.user_management.create_user(
                 email=user.email,
                 phone_number=user.phone_number,
@@ -60,7 +65,7 @@ def create_user():
             )
             return {"ok": True, "data": user}
         else:
-            return { "ok": False, "error": "Invalid Role provided" }
+            return {"ok": False, "error": "Invalid Role provided"}
     except Exception as e:
         logger.exception(e)
         return {"ok": False, "error": str(e)}
@@ -72,11 +77,11 @@ def create_user():
 def update_user(user_id: str):
     try:
         data: dict = router.current_event.json_body
-        data["email"] = user_id
         user = User(**data)
         if user.update_action == "update_details":
             genai_core.admin.user_management.update_user_details(
-                user_id=user.email,
+                current_email=__parse_email(user_id),
+                email=user.email,
                 phone_number=user.phone_number,
                 role=user.role,
                 name=user.name,
@@ -98,7 +103,7 @@ def update_user(user_id: str):
 @permissions.admin_only
 def delete_user(user_id: str):
     try:
-        response = genai_core.admin.user_management.delete_user(user_id)
+        response = genai_core.admin.user_management.delete_user(__parse_email(user_id))
         if response:
             return {"ok": True}
         else:
@@ -116,7 +121,7 @@ def delete_user(user_id: str):
 @permissions.admin_only
 def reset_password(user_id: str):
     try:
-        genai_core.admin.user_management.reset_user_password(user_id)
+        genai_core.admin.user_management.reset_user_password(__parse_email(user_id))
         return {"ok": True}
     except Exception as e:
         logger.exception(e)

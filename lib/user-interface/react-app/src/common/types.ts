@@ -275,8 +275,19 @@ export interface UserData {
   update_action?: string;
   userStatus?: UserStatus;
   enabled?: boolean;
+  previousEmail?: string;
 }
 
 export interface UsersResult {
   users: UserData[];
+}
+
+export enum AdminUsersManagementAction {
+  CREATE,
+  EDIT,
+  DELETE,
+  DISABLE,
+  ENABLE,
+  RESET_PASSWORD,
+  NO_ACTION,
 }

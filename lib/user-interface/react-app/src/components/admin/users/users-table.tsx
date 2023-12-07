@@ -8,7 +8,12 @@ import {
   TableProps,
 } from "@cloudscape-design/components";
 import { useCallback, useContext, useEffect, useState } from "react";
-import { ResultValue, UserData, UserRole } from "../../../common/types";
+import {
+  AdminUsersManagementAction,
+  ResultValue,
+  UserData,
+  UserRole,
+} from "../../../common/types";
 import { ApiClient } from "../../../common/api-client/api-client";
 import { useNavigate } from "react-router-dom";
 import { AppContext } from "../../../common/app-context";
@@ -16,7 +21,7 @@ import { UserContext } from "../../../common/user-context";
 import { getUserTableColumns } from "./users-table-columns";
 import ManageUserModal from "./manage-user-modal";
 
-export interface UsersTableProps { }
+export interface UsersTableProps {}
 
 export default function UsersTable() {
   const navigate = useNavigate();
@@ -25,14 +30,16 @@ export default function UsersTable() {
   const [loading, setLoading] = useState(true);
   const [users, setUsers] = useState<UserData[]>([]);
   const [selectedUsers, setSelectedUsers] = useState<UserData[]>([]);
-  const [currentlySelectedUser, setCurrentlySelectedUser] = useState<UserData>();
-  const [isModalVisible, setIsModalVisible] = useState(false)
+  const [currentlySelectedUser, setCurrentlySelectedUser] =
+    useState<UserData>();
+  const [isModalVisible, setIsModalVisible] = useState(false);
+  const [adminAction, setAdminAction] = useState<AdminUsersManagementAction>(
+    AdminUsersManagementAction.NO_ACTION
+  );
 
   const getUsers = useCallback(async () => {
     if (!appContext) return;
     if (!userContext || userContext.userRole != UserRole.ADMIN) {
-      console.debug(userContext.userRole);
-      console.debug("KICKING YOU OUT!");
       navigate("/");
     }
 
@@ -45,14 +52,47 @@ export default function UsersTable() {
     setLoading(false);
   }, [appContext, userContext, setLoading, navigate]);
 
+  const createUser = useCallback(
+    async (userData: UserData) => {
+      if (!appContext) return;
+      if (!userContext || userContext.userRole != UserRole.ADMIN) return;
+      const apiClient = new ApiClient(appContext);
+      const result = await apiClient.adminUsers.createUser(userData);
+      console.debug("result = ", result);
+      if (ResultValue.ok(result)) {
+        getUsers();
+      }
+    },
+    [getUsers, appContext, userContext]
+  );
+
+  const updateUser = useCallback(
+    async (userData: UserData) => {
+      if (!appContext) return;
+      if (!userContext || userContext.userRole != UserRole.ADMIN) return;
+      const apiClient = new ApiClient(appContext);
+      const result = await apiClient.adminUsers.updateUser(userData);
+      console.debug("result = ", result);
+      if (ResultValue.ok(result)) {
+        getUsers();
+      }
+    },
+    [getUsers, appContext, userContext]
+  );
+
   const onDismiss = async () => {
-    setIsModalVisible(false)
-  }
+    setAdminAction(AdminUsersManagementAction.NO_ACTION);
+    setIsModalVisible(false);
+  };
 
   const onSave = async (userData: UserData) => {
-    console.debug("SAVING", userData)
-    setIsModalVisible(false)
-  }
+    setIsModalVisible(false);
+    if (adminAction === AdminUsersManagementAction.CREATE) {
+      createUser(userData);
+    } else if (adminAction === AdminUsersManagementAction.EDIT) {
+      updateUser(userData);
+    }
+  };
 
   useEffect(() => {
     getUsers();
@@ -63,40 +103,47 @@ export default function UsersTable() {
     await getUsers();
   };
 
-
-
-  const handleUserActions = (event: CustomEvent<ButtonDropdownProps.ItemClickDetails>) => {
+  const handleUserActions = (
+    event: CustomEvent<ButtonDropdownProps.ItemClickDetails>
+  ) => {
     const detail = event.detail;
     if (detail.id == "edit") {
-      setIsModalVisible(true)
+      setIsModalVisible(true);
+      setAdminAction(AdminUsersManagementAction.EDIT);
     } else if (detail.id == "disable") {
-      console.debug("DISABLE USER")
+      setAdminAction(AdminUsersManagementAction.DISABLE);
+      console.debug("DISABLE USER");
     } else if (detail.id == "delete") {
-      console.debug("DELETE USER")
+      setAdminAction(AdminUsersManagementAction.DELETE);
+      console.debug("DELETE USER");
     }
-  }
+  };
 
   const handleAddUserClick = () => {
-    setSelectedUsers([])
-    setIsModalVisible(true)
-  }
+    setSelectedUsers([]);
+    setCurrentlySelectedUser(undefined);
+    setIsModalVisible(true);
+    setAdminAction(AdminUsersManagementAction.CREATE);
+  };
 
-  const onUserSelectionChange = (detail: TableProps.SelectionChangeDetail<UserData>) => {
-    setSelectedUsers(detail.selectedItems)
-    setCurrentlySelectedUser(detail.selectedItems[0])
-  }
-
+  const onUserSelectionChange = (
+    detail: TableProps.SelectionChangeDetail<UserData>
+  ) => {
+    setSelectedUsers(detail.selectedItems);
+    setCurrentlySelectedUser(detail.selectedItems[0]);
+  };
 
   const columnDefinitions = getUserTableColumns();
 
   return (
     <>
       <ManageUserModal
-        key={currentlySelectedUser?.email}
+        key={currentlySelectedUser?.email ? currentlySelectedUser?.email : null}
         onDismiss={onDismiss}
         visible={isModalVisible}
         userData={currentlySelectedUser}
         onSave={onSave}
+        adminAction={adminAction}
       ></ManageUserModal>
       <Table
         loading={loading}
@@ -112,14 +159,13 @@ export default function UsersTable() {
             actions={
               <SpaceBetween direction="horizontal" size="xs">
                 <Button iconName="refresh" onClick={refreshUsers} />
-                <Button variant="primary" onClick={handleAddUserClick} >
+                <Button variant="primary" onClick={handleAddUserClick}>
                   Add User
                 </Button>
                 <ButtonDropdown
-                  onItemClick={details => handleUserActions(details)}
+                  onItemClick={(details) => handleUserActions(details)}
                   items={[
                     {
-
                       id: "edit",
                       text: "Edit User",
                       iconName: "edit",

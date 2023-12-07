@@ -31,14 +31,20 @@ export const USERS_TABLE_COLUMN_DEFINITION = [
     id: "status",
     header: "Status",
     cell: (user: UserData) =>
-      user.userStatus ? user.userStatus.replace("_"," ") : "Error: No Status Found",
+      user.userStatus
+        ? user.userStatus.replace("_", " ")
+        : "Error: No Status Found",
   },
   {
     id: "enabled",
     header: "User Enabled",
-    cell: (user: UserData) => (user.enabled ?
-      <Badge color="green">Yes</Badge> : <Badge color="grey">No</Badge>),
-  }
+    cell: (user: UserData) =>
+      user.enabled ? (
+        <Badge color="green">Yes</Badge>
+      ) : (
+        <Badge color="grey">No</Badge>
+      ),
+  },
 ];
 
 export function getUserTableColumns() {

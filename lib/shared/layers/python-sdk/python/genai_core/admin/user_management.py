@@ -7,16 +7,17 @@ COGNITO_USER_POOL_ID = os.environ.get("COGNITO_USER_POOL_ID")
 idp = boto3.client("cognito-idp")
 
 
-def create_user(name, email, role):
+def create_user(name, email, role, phone_number = None):
     if role in genai_core.auth.UserPermissions.VALID_ROLES:
+        attributes = [{"Name": "email", "Value": email},
+                {"Name": "name", "Value": name},
+                {"Name": "custom:role", "Value": role}]
+        if phone_number:
+            attributes.append({"Name": "phone_number", "Value": phone_number})
         response = idp.admin_create_user(
             UserPoolId=COGNITO_USER_POOL_ID,
             Username=email,
-            UserAttributes=[
-                {"Name": "email", "Value": email},
-                {"Name": "name", "Value": name},
-                {"Name": "custom:role", "Value": role},
-            ],
+            UserAttributes=[attributes],
         )
         if response["ResponseMetadata"]["HTTPStatusCode"] == 200:
             return True
@@ -33,7 +34,7 @@ def list_users():
     users = []
     for user in response["Users"]:
         user_data = {}
-        for attribute in user['Attributes']:
+        for attribute in user["Attributes"]:
             if attribute["Name"] == "name":
                 user_data["name"] = attribute["Value"]
             if attribute["Name"] == "email":
@@ -52,7 +53,7 @@ def get_user(email):
     response = idp.admin_get_user(UserPoolId=COGNITO_USER_POOL_ID, Username=email)
     if response["ResponseMetadata"]["HTTPStatusCode"] == 200:
         user_data = {}
-        for attribute in response['Attributes']:
+        for attribute in response["UserAttributes"]:
             if attribute["Name"] == "name":
                 user_data["name"] = attribute["Value"]
             if attribute["Name"] == "email":
@@ -89,12 +90,12 @@ def enable_user(email):
 
 def update_user_details(current_email, **kwargs):
     attribute = []
-    if "name" in kwargs:
+    if "name" in kwargs and kwargs["name"] != None:
         attribute.append({"Name": "name", "Value": kwargs["name"]})
-    if "email" in kwargs:
+    if "email" in kwargs and kwargs["email"] != None:
         attribute.append({"Name": "email", "Value": kwargs["email"]})
         attribute.append({"Name": "email_verified", "Value": "true"})
-    if "phone_number" in kwargs:
+    if "phone_number" in kwargs and kwargs["phone_number"] != None:
         attribute.append({"Name": "phone_number", "Value": kwargs["phone_number"]})
         attribute.append({"Name": "phone_number_verified", "Value": "true"})
     if (
