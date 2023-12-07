@@ -257,3 +257,11 @@ export interface KendraIndexItem {
   name: string;
   external: boolean;
 }
+
+export interface UserApiData {
+  name?: string;
+  email: string;
+  phoneNumber?: string;
+  role?: UserRole;
+  update_action?: string
+}
