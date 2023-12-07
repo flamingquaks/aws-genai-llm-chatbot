@@ -243,6 +243,25 @@ export class RestApi extends Construct {
       })
     );
 
+    apiHandler.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: [
+          "cognito:AddCustomAttributes",
+          "cognito:AdminGetUser",
+          "cognito:AdminUpdateUserAttributes",
+          "cognito:ListUsers",
+          "cognito:AdminCreateUser",
+          "cognito:AdminDeleteUser",
+          "cognito:AdminDisableUser",
+          "cognito:AdminEnableUser",
+          "cognito:SignUp",
+          "cognito:ForgotPassword",
+        ],
+        resources: [props.userPool.userPoolArn],
+        effect: iam.Effect.ALLOW,
+      })
+    );
+
     props.shared.xOriginVerifySecret.grantRead(apiHandler);
     props.shared.apiKeysSecret.grantRead(apiHandler);
     props.shared.configParameter.grantRead(apiHandler);
