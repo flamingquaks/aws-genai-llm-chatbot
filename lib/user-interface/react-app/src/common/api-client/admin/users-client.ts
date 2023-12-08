@@ -68,8 +68,9 @@ export class UsersClient extends ApiClientBase {
       const result = await fetch(
         this.getApiUrl(`/admin/users/${encodeURI(user.email)}`),
         {
-          method: "DELETE",
+          method: "PATCH",
           headers,
+          body: JSON.stringify(user),
         }
       );
       return result.json();
@@ -85,8 +86,9 @@ export class UsersClient extends ApiClientBase {
       const result = await fetch(
         this.getApiUrl(`/admin/users/${encodeURI(user.email)}`),
         {
-          method: "DELETE",
+          method: "PATCH",
           headers,
+          body: JSON.stringify(user),
         }
       );
       return result.json();

@@ -21,7 +21,6 @@ import { UserContext } from "../../../common/user-context";
 import { getUserTableColumns } from "./users-table-columns";
 import ManageUserModal from "./manage-user-modal";
 
-export interface UsersTableProps {}
 
 export default function UsersTable() {
   const navigate = useNavigate();
@@ -80,6 +79,34 @@ export default function UsersTable() {
     [getUsers, appContext, userContext]
   );
 
+  const disableUser = useCallback(
+    async (userData: UserData) => {
+      if (!appContext) return;
+      if (!userContext || userContext.userRole != UserRole.ADMIN) return;
+      const apiClient = new ApiClient(appContext);
+      const result = await apiClient.adminUsers.disableUser(userData);
+      console.debug("result = ", result);
+      if (ResultValue.ok(result)) {
+        getUsers();
+      }
+    }, [appContext, userContext, getUsers]
+  )
+
+  const enableUser = useCallback(
+    async (userData: UserData) => {
+      if (!appContext) return;
+      if (!userContext || userContext.userRole != UserRole.ADMIN) return;
+      setLoading(true)
+      const apiClient = new ApiClient(appContext);
+      const result = await apiClient.adminUsers.enableUser(userData);
+      console.debug("result = ", result);
+      if (ResultValue.ok(result)) {
+        getUsers();
+      }
+      setLoading(false)
+    }, [appContext, userContext, getUsers, setLoading]
+  )
+
   const onDismiss = async () => {
     setAdminAction(AdminUsersManagementAction.NO_ACTION);
     setIsModalVisible(false);
@@ -93,6 +120,8 @@ export default function UsersTable() {
       updateUser(userData);
     }
   };
+
+
 
   useEffect(() => {
     getUsers();
@@ -112,11 +141,16 @@ export default function UsersTable() {
       setAdminAction(AdminUsersManagementAction.EDIT);
     } else if (detail.id == "disable") {
       setAdminAction(AdminUsersManagementAction.DISABLE);
-      console.debug("DISABLE USER");
+      if (currentlySelectedUser) {
+        disableUser(currentlySelectedUser)
+      }
     } else if (detail.id == "delete") {
       setAdminAction(AdminUsersManagementAction.DELETE);
-      console.debug("DELETE USER");
+      if (currentlySelectedUser) {
+        enableUser(currentlySelectedUser)
+      }
     }
+    setAdminAction(AdminUsersManagementAction.NO_ACTION)
   };
 
   const handleAddUserClick = () => {

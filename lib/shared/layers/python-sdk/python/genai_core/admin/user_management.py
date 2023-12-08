@@ -17,7 +17,7 @@ def create_user(name, email, role, phone_number = None):
         response = idp.admin_create_user(
             UserPoolId=COGNITO_USER_POOL_ID,
             Username=email,
-            UserAttributes=[attributes],
+            UserAttributes=attributes,
         )
         if response["ResponseMetadata"]["HTTPStatusCode"] == 200:
             return True
@@ -102,7 +102,7 @@ def update_user_details(current_email, **kwargs):
         "role" in kwargs
         and kwargs["role"] in genai_core.auth.UserPermissions.VALID_ROLES
     ):
-        attribute.append({"Name": "custom:role", "Value": kwargs["role"]})
+        attribute.append({"Name": "custom:userRole", "Value": kwargs["role"]})
     idp.admin_update_user_attributes(
         UserPoolId=COGNITO_USER_POOL_ID,
         Username=current_email,
