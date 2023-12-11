@@ -1,7 +1,7 @@
 import urllib.parse
 from typing import Optional
 import genai_core.types
-import genai_core.admin.user_management
+import genai_core.admin_user_management
 from pydantic import BaseModel
 from genai_core.auth import UserPermissions
 from aws_lambda_powertools import Logger, Tracer
@@ -15,9 +15,10 @@ permissions = UserPermissions(router)
 
 class User(BaseModel):
     email: str
-    phoneNumber: str
+    phoneNumber: Optional[str]
     role: str
     name: str
+    previousEmail: Optional[str]
 
 
 def __parse_email(encoded_email):
@@ -29,7 +30,7 @@ def __parse_email(encoded_email):
 @permissions.admin_only
 def list_users():
     try:
-        users = genai_core.admin.user_management.list_users()
+        users = genai_core.admin_user_management.list_users()
         return {"ok": True, "data": users}
     except Exception as e:
         logger.exception(e)
@@ -41,7 +42,7 @@ def list_users():
 @permissions.admin_only
 def get_user(user_id: str):
     try:
-        user = genai_core.admin.user_management.get_user(__parse_email(user_id))
+        user = genai_core.admin_user_management.get_user(__parse_email(user_id))
         return {"ok": True, "data": user}
     except Exception as e:
         logger.exception(e)
@@ -54,9 +55,14 @@ def get_user(user_id: str):
 def create_user():
     try:
         data: dict = router.current_event.json_body
-        user = User(**data)
+        user = User(
+            email=data["email"],
+            phoneNumber=data.get("phoneNumber", ""),
+            name=data.get("name"),
+            role=data.get("role", "chatbot_user"),
+        )
         if user.role in UserPermissions.VALID_ROLES:
-            genai_core.admin.user_management.create_user(
+            genai_core.admin_user_management.create_user(
                 email=user.email,
                 phone_number=user.phoneNumber,
                 role=user.role,
@@ -70,15 +76,16 @@ def create_user():
         return {"ok": False, "error": str(e)}
 
 
-@router.post("/admin/users/<user_id>/edit")
+@router.post("/admin/users/edit")
 @tracer.capture_method
 @permissions.admin_only
-def edit_user(user_id: str):
+def edit_user():
     try:
         data: dict = router.current_event.json_body
         user = User(**data)
-        genai_core.admin.user_management.update_user_details(
-            current_email=__parse_email(user_id),
+        user_id = user.previousEmail if user.previousEmail else user.email
+        genai_core.admin_user_management.update_user_details(
+            current_email=user_id,
             email=user.email,
             role=user.role,
             name=user.name,
@@ -94,18 +101,19 @@ def edit_user(user_id: str):
 @permissions.admin_only
 def disable_user(user_id: str):
     try:
-        genai_core.admin.user_management.disable_user(__parse_email(user_id))
+        genai_core.admin_user_management.disable_user(__parse_email(user_id))
         return {"ok": True}
     except Exception as e:
         logger.exception(e)
         return {"ok": False, "error": str(e)}
-    
+
+
 @router.post("/admin/users/<user_id>/enable")
 @tracer.capture_method
 @permissions.admin_only
 def enable_user(user_id: str):
     try:
-        genai_core.admin.user_management.enable_user(__parse_email(user_id))
+        genai_core.admin_user_management.enable_user(__parse_email(user_id))
         return {"ok": True}
     except Exception as e:
         logger.exception(e)
@@ -117,7 +125,7 @@ def enable_user(user_id: str):
 @permissions.admin_only
 def delete_user(user_id: str):
     try:
-        response = genai_core.admin.user_management.delete_user(__parse_email(user_id))
+        response = genai_core.admin_user_management.delete_user(__parse_email(user_id))
         if response:
             return {"ok": True}
         else:
@@ -135,7 +143,7 @@ def delete_user(user_id: str):
 @permissions.admin_only
 def reset_password(user_id: str):
     try:
-        genai_core.admin.user_management.reset_user_password(__parse_email(user_id))
+        genai_core.admin_user_management.reset_user_password(__parse_email(user_id))
         return {"ok": True}
     except Exception as e:
         logger.exception(e)

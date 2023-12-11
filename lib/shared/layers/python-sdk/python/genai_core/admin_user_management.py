@@ -12,7 +12,7 @@ def create_user(name, email, role, phone_number=None):
         attributes = [
             {"Name": "email", "Value": email},
             {"Name": "name", "Value": name},
-            {"Name": "custom:role", "Value": role},
+            {"Name": "custom:userRole", "Value": role},
         ]
         if phone_number:
             attributes.append({"Name": "phone_number", "Value": phone_number})

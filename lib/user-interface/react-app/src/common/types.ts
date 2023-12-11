@@ -268,10 +268,10 @@ export type UserStatus =
   | "FORCE_CHANGE_PASSWORD";
 
 export interface UserData {
-  name?: string;
+  name: string;
   email: string;
   phoneNumber?: string;
-  role?: UserRole;
+  role: UserRole;
   userStatus?: UserStatus;
   enabled?: boolean;
   previousEmail?: string;

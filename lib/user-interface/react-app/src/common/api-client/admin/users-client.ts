@@ -1,4 +1,4 @@
-import { ApiResult, UserData, UserDataApiRequest } from "../../types";
+import { ApiResult, UserData, UserDataApiRequest, UserRole } from "../../types";
 import { ApiClientBase } from "../api-client-base";
 
 export class UsersClient extends ApiClientBase {
@@ -40,20 +40,23 @@ export class UsersClient extends ApiClientBase {
     }
   }
 
-  async updateUser(user: UserData): Promise<ApiResult<UserData>> {
+  async updateUser(
+    name: string,
+    email: string,
+    phoneNumber: string,
+    role: UserRole,
+    previousEmail?: string
+  ): Promise<ApiResult<UserData>> {
     try {
-      if (!user.previousEmail) {
-        user.previousEmail = user.email;
+      if (!previousEmail) {
+        previousEmail = email;
       }
       const headers = await this.getHeaders();
-      const result = await fetch(
-        this.getApiUrl(`/admin/users/${encodeURI(user.previousEmail)}/edit`),
-        {
-          method: "POST",
-          headers,
-          body: JSON.stringify(getApiSafeData(user)),
-        }
-      );
+      const result = await fetch(this.getApiUrl(`/admin/users/edit`), {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ name, email, phoneNumber, role, previousEmail }),
+      });
       return result.json();
     } catch (error) {
       return this.error(error);
