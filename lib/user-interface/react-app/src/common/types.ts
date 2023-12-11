@@ -272,10 +272,16 @@ export interface UserData {
   email: string;
   phoneNumber?: string;
   role?: UserRole;
-  update_action?: string;
   userStatus?: UserStatus;
   enabled?: boolean;
   previousEmail?: string;
+}
+
+export interface UserDataApiRequest {
+  email: string;
+  phoneNumber?: string;
+  role: string;
+  name?: string;
 }
 
 export interface UsersResult {

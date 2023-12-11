@@ -21,7 +21,6 @@ import { UserContext } from "../../../common/user-context";
 import { getUserTableColumns } from "./users-table-columns";
 import ManageUserModal from "./manage-user-modal";
 
-
 export default function UsersTable() {
   const navigate = useNavigate();
   const appContext = useContext(AppContext);
@@ -35,6 +34,7 @@ export default function UsersTable() {
   const [adminAction, setAdminAction] = useState<AdminUsersManagementAction>(
     AdminUsersManagementAction.NO_ACTION
   );
+  const [userEnabled, setUserEnabled] = useState(true);
 
   const getUsers = useCallback(async () => {
     if (!appContext) return;
@@ -44,7 +44,6 @@ export default function UsersTable() {
 
     const apiClient = new ApiClient(appContext);
     const result = await apiClient.adminUsers.getUsers();
-    console.debug("result = ", result);
     if (ResultValue.ok(result)) {
       setUsers([...result.data]);
     }
@@ -57,10 +56,10 @@ export default function UsersTable() {
       if (!userContext || userContext.userRole != UserRole.ADMIN) return;
       const apiClient = new ApiClient(appContext);
       const result = await apiClient.adminUsers.createUser(userData);
-      console.debug("result = ", result);
       if (ResultValue.ok(result)) {
         getUsers();
       }
+      setLoading(false);
     },
     [getUsers, appContext, userContext]
   );
@@ -71,12 +70,14 @@ export default function UsersTable() {
       if (!userContext || userContext.userRole != UserRole.ADMIN) return;
       const apiClient = new ApiClient(appContext);
       const result = await apiClient.adminUsers.updateUser(userData);
-      console.debug("result = ", result);
       if (ResultValue.ok(result)) {
         getUsers();
       }
+      setCurrentlySelectedUser(undefined);
+      setSelectedUsers([]);
+      setLoading(false);
     },
-    [getUsers, appContext, userContext]
+    [getUsers, appContext, userContext, setLoading]
   );
 
   const disableUser = useCallback(
@@ -85,27 +86,28 @@ export default function UsersTable() {
       if (!userContext || userContext.userRole != UserRole.ADMIN) return;
       const apiClient = new ApiClient(appContext);
       const result = await apiClient.adminUsers.disableUser(userData);
-      console.debug("result = ", result);
       if (ResultValue.ok(result)) {
         getUsers();
       }
-    }, [appContext, userContext, getUsers]
-  )
+      setLoading(false);
+    },
+    [appContext, userContext, getUsers, setLoading]
+  );
 
   const enableUser = useCallback(
     async (userData: UserData) => {
       if (!appContext) return;
       if (!userContext || userContext.userRole != UserRole.ADMIN) return;
-      setLoading(true)
+      setLoading(true);
       const apiClient = new ApiClient(appContext);
       const result = await apiClient.adminUsers.enableUser(userData);
-      console.debug("result = ", result);
       if (ResultValue.ok(result)) {
         getUsers();
       }
-      setLoading(false)
-    }, [appContext, userContext, getUsers, setLoading]
-  )
+      setLoading(false);
+    },
+    [appContext, userContext, getUsers, setLoading]
+  );
 
   const onDismiss = async () => {
     setAdminAction(AdminUsersManagementAction.NO_ACTION);
@@ -113,15 +115,15 @@ export default function UsersTable() {
   };
 
   const onSave = async (userData: UserData) => {
+    console.debug(adminAction);
     setIsModalVisible(false);
-    if (adminAction === AdminUsersManagementAction.CREATE) {
+    setLoading(true);
+    if (adminAction == AdminUsersManagementAction.CREATE) {
       createUser(userData);
-    } else if (adminAction === AdminUsersManagementAction.EDIT) {
+    } else if (adminAction == AdminUsersManagementAction.EDIT) {
       updateUser(userData);
     }
   };
-
-
 
   useEffect(() => {
     getUsers();
@@ -137,20 +139,27 @@ export default function UsersTable() {
   ) => {
     const detail = event.detail;
     if (detail.id == "edit") {
-      setIsModalVisible(true);
+      console.debug(AdminUsersManagementAction);
       setAdminAction(AdminUsersManagementAction.EDIT);
+      setIsModalVisible(true);
     } else if (detail.id == "disable") {
       setAdminAction(AdminUsersManagementAction.DISABLE);
       if (currentlySelectedUser) {
-        disableUser(currentlySelectedUser)
+        disableUser(currentlySelectedUser);
+      }
+    } else if (detail.id == "enable") {
+      setAdminAction(AdminUsersManagementAction.ENABLE);
+      if (currentlySelectedUser) {
+        enableUser(currentlySelectedUser);
       }
     } else if (detail.id == "delete") {
       setAdminAction(AdminUsersManagementAction.DELETE);
       if (currentlySelectedUser) {
-        enableUser(currentlySelectedUser)
+        enableUser(currentlySelectedUser);
       }
+    } else {
+      setAdminAction(AdminUsersManagementAction.NO_ACTION);
     }
-    setAdminAction(AdminUsersManagementAction.NO_ACTION)
   };
 
   const handleAddUserClick = () => {
@@ -165,6 +174,11 @@ export default function UsersTable() {
   ) => {
     setSelectedUsers(detail.selectedItems);
     setCurrentlySelectedUser(detail.selectedItems[0]);
+    if (detail.selectedItems[0].enabled) {
+      setUserEnabled(true);
+    } else {
+      setUserEnabled(false);
+    }
   };
 
   const columnDefinitions = getUserTableColumns();
@@ -209,13 +223,31 @@ export default function UsersTable() {
                       id: "disable",
                       text: "Disable User",
                       iconName: "close",
-                      disabled: selectedUsers.length != 1,
+                      disabled: selectedUsers.length != 1 || !userEnabled,
+                      description:
+                        selectedUsers.length != 1 || !userEnabled
+                          ? "User is already disabled"
+                          : "Click to disable the selected user",
+                    },
+                    {
+                      id: "enable",
+                      text: "Enable User",
+                      iconName: "check",
+                      disabled: selectedUsers.length != 1 || userEnabled,
+                      description:
+                        selectedUsers.length != 1 || userEnabled
+                          ? "User is already enabled"
+                          : "Click to enable the selected user",
                     },
                     {
                       id: "delete",
                       text: "Delete User",
                       iconName: "delete-marker",
-                      disabled: selectedUsers.length != 1,
+                      disabled: selectedUsers.length != 1 || userEnabled,
+                      description:
+                        selectedUsers.length != 1 || userEnabled
+                          ? "Selected user is still enabled. Disable the user first to enable user deletion"
+                          : "Click to delete the selected user. This deletes all data associate with the user as well.",
                     },
                   ]}
                 >

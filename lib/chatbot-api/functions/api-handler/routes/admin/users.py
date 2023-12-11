@@ -15,10 +15,9 @@ permissions = UserPermissions(router)
 
 class User(BaseModel):
     email: str
-    phone_number: Optional[str] = None
-    role: Optional[str]
-    name: Optional[str]
-    update_action: Optional[str] = None
+    phoneNumber: str
+    role: str
+    name: str
 
 
 def __parse_email(encoded_email):
@@ -49,7 +48,7 @@ def get_user(user_id: str):
         return {"ok": False, "error": str(e)}
 
 
-@router.put("/admin/users")
+@router.post("/admin/users")
 @tracer.capture_method
 @permissions.admin_only
 def create_user():
@@ -59,7 +58,7 @@ def create_user():
         if user.role in UserPermissions.VALID_ROLES:
             genai_core.admin.user_management.create_user(
                 email=user.email,
-                phone_number=user.phone_number,
+                phone_number=user.phoneNumber,
                 role=user.role,
                 name=user.name,
             )
@@ -71,28 +70,43 @@ def create_user():
         return {"ok": False, "error": str(e)}
 
 
-@router.patch("/admin/users/<user_id>")
+@router.post("/admin/users/<user_id>/edit")
 @tracer.capture_method
 @permissions.admin_only
-def update_user(user_id: str):
+def edit_user(user_id: str):
     try:
         data: dict = router.current_event.json_body
         user = User(**data)
-        if user.update_action == "update_details":
-            genai_core.admin.user_management.update_user_details(
-                current_email=__parse_email(user_id),
-                email=user.email,
-                phone_number=user.phone_number,
-                role=user.role,
-                name=user.name,
-            )
-        elif user.update_action == "disable_user":
-            genai_core.admin.user_management.disable_user(user.email)
-        elif user.update_action == "enable_user":
-            genai_core.admin.user_management.enable_user(user.email)
-        else:
-            raise Exception("No valid update action provided.")
+        genai_core.admin.user_management.update_user_details(
+            current_email=__parse_email(user_id),
+            email=user.email,
+            role=user.role,
+            name=user.name,
+        )
         return {"ok": True, "data": user}
+    except Exception as e:
+        logger.exception(e)
+        return {"ok": False, "error": str(e)}
+
+
+@router.post("/admin/users/<user_id>/disable")
+@tracer.capture_method
+@permissions.admin_only
+def disable_user(user_id: str):
+    try:
+        genai_core.admin.user_management.disable_user(__parse_email(user_id))
+        return {"ok": True}
+    except Exception as e:
+        logger.exception(e)
+        return {"ok": False, "error": str(e)}
+    
+@router.post("/admin/users/<user_id>/enable")
+@tracer.capture_method
+@permissions.admin_only
+def enable_user(user_id: str):
+    try:
+        genai_core.admin.user_management.enable_user(__parse_email(user_id))
+        return {"ok": True}
     except Exception as e:
         logger.exception(e)
         return {"ok": False, "error": str(e)}

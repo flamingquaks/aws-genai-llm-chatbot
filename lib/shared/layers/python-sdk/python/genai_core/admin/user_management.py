@@ -7,11 +7,13 @@ COGNITO_USER_POOL_ID = os.environ.get("COGNITO_USER_POOL_ID")
 idp = boto3.client("cognito-idp")
 
 
-def create_user(name, email, role, phone_number = None):
+def create_user(name, email, role, phone_number=None):
     if role in genai_core.auth.UserPermissions.VALID_ROLES:
-        attributes = [{"Name": "email", "Value": email},
-                {"Name": "name", "Value": name},
-                {"Name": "custom:role", "Value": role}]
+        attributes = [
+            {"Name": "email", "Value": email},
+            {"Name": "name", "Value": name},
+            {"Name": "custom:role", "Value": role},
+        ]
         if phone_number:
             attributes.append({"Name": "phone_number", "Value": phone_number})
         response = idp.admin_create_user(
@@ -90,12 +92,14 @@ def enable_user(email):
 
 def update_user_details(current_email, **kwargs):
     attribute = []
-    if "name" in kwargs and kwargs["name"] != None:
+    if "name" in kwargs and (kwargs["name"] != None and kwargs["name"] != "NONE"):
         attribute.append({"Name": "name", "Value": kwargs["name"]})
-    if "email" in kwargs and kwargs["email"] != None:
+    if "email" in kwargs and (kwargs["email"] != None and kwargs["email"] != "NONE"):
         attribute.append({"Name": "email", "Value": kwargs["email"]})
         attribute.append({"Name": "email_verified", "Value": "true"})
-    if "phone_number" in kwargs and kwargs["phone_number"] != None:
+    if "phone_number" in kwargs and (
+        kwargs["phone_number"] != None and kwargs["phone_number"] != "NONE"
+    ):
         attribute.append({"Name": "phone_number", "Value": kwargs["phone_number"]})
         attribute.append({"Name": "phone_number_verified", "Value": "true"})
     if (

@@ -1,4 +1,4 @@
-import { ApiResult, UserData } from "../../types";
+import { ApiResult, UserData, UserDataApiRequest } from "../../types";
 import { ApiClientBase } from "../api-client-base";
 
 export class UsersClient extends ApiClientBase {
@@ -30,9 +30,9 @@ export class UsersClient extends ApiClientBase {
     try {
       const headers = await this.getHeaders();
       const result = await fetch(this.getApiUrl(`/admin/users`), {
-        method: "PUT",
+        method: "POST",
         headers,
-        body: JSON.stringify(user),
+        body: JSON.stringify(getApiSafeData(user)),
       });
       return result.json();
     } catch (error) {
@@ -46,13 +46,12 @@ export class UsersClient extends ApiClientBase {
         user.previousEmail = user.email;
       }
       const headers = await this.getHeaders();
-      user.update_action = "update_details";
       const result = await fetch(
-        this.getApiUrl(`/admin/users/${encodeURI(user.previousEmail)}`),
+        this.getApiUrl(`/admin/users/${encodeURI(user.previousEmail)}/edit`),
         {
-          method: "PATCH",
+          method: "POST",
           headers,
-          body: JSON.stringify(user),
+          body: JSON.stringify(getApiSafeData(user)),
         }
       );
       return result.json();
@@ -64,13 +63,11 @@ export class UsersClient extends ApiClientBase {
   async disableUser(user: UserData): Promise<ApiResult<UserData>> {
     try {
       const headers = await this.getHeaders();
-      user.update_action = "disable_user";
       const result = await fetch(
-        this.getApiUrl(`/admin/users/${encodeURI(user.email)}`),
+        this.getApiUrl(`/admin/users/${encodeURI(user.email)}/disable`),
         {
-          method: "PATCH",
+          method: "POST",
           headers,
-          body: JSON.stringify(user),
         }
       );
       return result.json();
@@ -82,13 +79,11 @@ export class UsersClient extends ApiClientBase {
   async enableUser(user: UserData): Promise<ApiResult<UserData>> {
     try {
       const headers = await this.getHeaders();
-      user.update_action = "enable_user";
       const result = await fetch(
-        this.getApiUrl(`/admin/users/${encodeURI(user.email)}`),
+        this.getApiUrl(`/admin/users/${encodeURI(user.email)}/enable`),
         {
-          method: "PATCH",
+          method: "POST",
           headers,
-          body: JSON.stringify(user),
         }
       );
       return result.json();
@@ -129,3 +124,12 @@ export class UsersClient extends ApiClientBase {
     }
   }
 }
+
+const getApiSafeData = (user: UserData): UserDataApiRequest => {
+  return {
+    email: user.email ?? "NONE",
+    phoneNumber: user.phoneNumber ?? "NONE",
+    role: user.role ? user.role.toString() : "NONE",
+    name: user.name ?? "NONE",
+  };
+};
