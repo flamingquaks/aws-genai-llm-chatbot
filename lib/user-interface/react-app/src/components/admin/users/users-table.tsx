@@ -156,17 +156,15 @@ export default function UsersTable() {
       setIsManageModalVisible(true);
     } else if (detail.id == "disable" && currentlySelectedUser) {
       setAdminAction(AdminUsersManagementAction.DISABLE);
-      setIsConfirmModalVisible(true)
+      setIsConfirmModalVisible(true);
     } else if (detail.id == "enable" && currentlySelectedUser) {
-
       setAdminAction(AdminUsersManagementAction.ENABLE);
       enableUser(currentlySelectedUser);
       setCurrentlySelectedUser(undefined);
       setSelectedUsers([]);
-
     } else if (detail.id == "delete" && currentlySelectedUser) {
       setAdminAction(AdminUsersManagementAction.DELETE);
-      setIsConfirmModalVisible(true)
+      setIsConfirmModalVisible(true);
     } else {
       setAdminAction(AdminUsersManagementAction.NO_ACTION);
     }
@@ -195,43 +193,42 @@ export default function UsersTable() {
 
   return (
     <>
-      <Modal visible={isConfirmModalVisible}
+      <Modal
+        visible={isConfirmModalVisible}
         onDismiss={onDismiss}
-        header={<Header>
-          {getConfirmHeader(adminAction)}
-        </Header>}
+        header={<Header>{getConfirmHeader(adminAction)}</Header>}
         footer={
           <SpaceBetween size="s" direction="horizontal" alignItems="end">
             <Button onClick={onDismiss}>Cancel</Button>
-            <Button variant="primary" onClick={() => {
-              if (adminAction == AdminUsersManagementAction.DELETE) {
-                if (currentlySelectedUser) {
-                  // deleteUser(currentlySelectedUser);
-                  setCurrentlySelectedUser(undefined);
-                  setSelectedUsers([]);
-                  setIsConfirmModalVisible(false);
-                  setAdminAction(AdminUsersManagementAction.NO_ACTION);
-                  console.debug("DELETE USER CLICKED")
+            <Button
+              variant="primary"
+              onClick={() => {
+                if (adminAction == AdminUsersManagementAction.DELETE) {
+                  if (currentlySelectedUser) {
+                    // deleteUser(currentlySelectedUser);
+                    setCurrentlySelectedUser(undefined);
+                    setSelectedUsers([]);
+                    setIsConfirmModalVisible(false);
+                    setAdminAction(AdminUsersManagementAction.NO_ACTION);
+                    console.debug("DELETE USER CLICKED");
+                  }
+                } else if (adminAction == AdminUsersManagementAction.DISABLE) {
+                  if (currentlySelectedUser) {
+                    disableUser(currentlySelectedUser);
+                    setCurrentlySelectedUser(undefined);
+                    setSelectedUsers([]);
+                    setIsConfirmModalVisible(false);
+                    setAdminAction(AdminUsersManagementAction.NO_ACTION);
+                  }
                 }
-              } else if (adminAction == AdminUsersManagementAction.DISABLE) {
-                if (currentlySelectedUser) {
-                  disableUser(currentlySelectedUser);
-                  setCurrentlySelectedUser(undefined);
-                  setSelectedUsers([]);
-                  setIsConfirmModalVisible(false);
-                  setAdminAction(AdminUsersManagementAction.NO_ACTION);
-                }
-              }
-            }}>
+              }}
+            >
               {getConfirmActionButton(adminAction)}
             </Button>
-
           </SpaceBetween>
         }
       >
-        <Alert type="warning">
-          {getConfirmDescription(adminAction)}
-        </Alert>
+        <Alert type="warning">{getConfirmDescription(adminAction)}</Alert>
       </Modal>
       <ManageUserModal
         key={currentlySelectedUser?.email ? currentlySelectedUser?.email : null}
@@ -313,32 +310,32 @@ export default function UsersTable() {
 const getConfirmHeader = (action: AdminUsersManagementAction): string => {
   switch (action) {
     case AdminUsersManagementAction.DISABLE:
-      return "Disable User?"
+      return "Disable User?";
     case AdminUsersManagementAction.DELETE:
-      return "Delete User?"
+      return "Delete User?";
     default:
-      return "Confirm?"
+      return "Confirm?";
   }
-}
+};
 
 const getConfirmDescription = (action: AdminUsersManagementAction): string => {
   switch (action) {
     case AdminUsersManagementAction.DISABLE:
-      return "Are you sure you want to disable this user? This user will no longer be able to login. The user can be enabled later and any user data will remain stored."
+      return "Are you sure you want to disable this user? This user will no longer be able to login. The user can be enabled later and any user data will remain stored.";
     case AdminUsersManagementAction.DELETE:
-      return "Are you sure you want to delete this user? This will delete all data associated with the user as well."
+      return "Are you sure you want to delete this user? This will delete all data associated with the user as well.";
     default:
-      return "Are you sure?"
+      return "Are you sure?";
   }
-}
+};
 
 const getConfirmActionButton = (action: AdminUsersManagementAction): string => {
   switch (action) {
     case AdminUsersManagementAction.DISABLE:
-      return "Disable User"
+      return "Disable User";
     case AdminUsersManagementAction.DELETE:
-      return "Delete User"
+      return "Delete User";
     default:
-      return "Confirm"
+      return "Confirm";
   }
-}
+};

@@ -49,7 +49,7 @@ def get_user(user_id: str):
         return {"ok": False, "error": str(e)}
 
 
-@router.post("/admin/users")
+@router.put("/admin/users")
 @tracer.capture_method
 @permissions.admin_only
 def create_user():
@@ -76,7 +76,7 @@ def create_user():
         return {"ok": False, "error": str(e)}
 
 
-@router.post("/admin/users/edit")
+@router.patch("/admin/users")
 @tracer.capture_method
 @permissions.admin_only
 def edit_user():

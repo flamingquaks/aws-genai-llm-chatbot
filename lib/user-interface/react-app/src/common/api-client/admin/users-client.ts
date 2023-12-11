@@ -52,8 +52,8 @@ export class UsersClient extends ApiClientBase {
         previousEmail = email;
       }
       const headers = await this.getHeaders();
-      const result = await fetch(this.getApiUrl(`/admin/users/edit`), {
-        method: "POST",
+      const result = await fetch(this.getApiUrl(`/admin/users`), {
+        method: "PATCH",
         headers,
         body: JSON.stringify({ name, email, phoneNumber, role, previousEmail }),
       });
