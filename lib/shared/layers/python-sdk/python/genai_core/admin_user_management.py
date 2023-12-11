@@ -91,28 +91,32 @@ def enable_user(email):
 
 
 def update_user_details(current_email, **kwargs):
-    attribute = []
-    if "name" in kwargs and (kwargs["name"] != None and kwargs["name"] != "NONE"):
-        attribute.append({"Name": "name", "Value": kwargs["name"]})
-    if "email" in kwargs and (kwargs["email"] != None and kwargs["email"] != "NONE"):
-        attribute.append({"Name": "email", "Value": kwargs["email"]})
-        attribute.append({"Name": "email_verified", "Value": "true"})
-    if "phone_number" in kwargs and (
-        kwargs["phone_number"] != None and kwargs["phone_number"] != "NONE"
-    ):
-        attribute.append({"Name": "phone_number", "Value": kwargs["phone_number"]})
-        attribute.append({"Name": "phone_number_verified", "Value": "true"})
+    attributes = []
+    if "name" in kwargs and len(kwargs["name"]) > 0:
+        attributes.append({"Name": "name", "Value": kwargs["name"]})
+    if "email" in kwargs and len(kwargs["email"]) > 0:
+        attributes.append({"Name": "email", "Value": kwargs["email"]})
+        attributes.append({"Name": "email_verified", "Value": "true"})
+    if "phone_number" in kwargs and len(kwargs["phone_number"]) > 0:
+        attributes.append({"Name": "phone_number", "Value": kwargs["phone_number"]})
+        attributes.append({"Name": "phone_number_verified", "Value": "true"})
     if (
         "role" in kwargs
         and kwargs["role"] in genai_core.auth.UserPermissions.VALID_ROLES
     ):
-        attribute.append({"Name": "custom:userRole", "Value": kwargs["role"]})
-    idp.admin_update_user_attributes(
+        attributes.append({"Name": "custom:userRole", "Value": kwargs["role"]})
+    print("update_user_details")
+    print(attributes)
+    print(current_email)
+    response = idp.admin_update_user_attributes(
         UserPoolId=COGNITO_USER_POOL_ID,
         Username=current_email,
-        UserAttributes=attribute,
+        UserAttributes=attributes,
     )
-    return True
+    if response["ResponseMetadata"]["HTTPStatusCode"] == 200:
+        return True
+    else:
+        return False
 
 
 def reset_user_password(email):

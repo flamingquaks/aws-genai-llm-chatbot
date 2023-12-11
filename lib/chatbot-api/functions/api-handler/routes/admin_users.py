@@ -15,10 +15,10 @@ permissions = UserPermissions(router)
 
 class User(BaseModel):
     email: str
-    phoneNumber: Optional[str]
+    phoneNumber: Optional[str] = None
     role: str
     name: str
-    previousEmail: Optional[str]
+    previousEmail: Optional[str] = None
 
 
 def __parse_email(encoded_email):
@@ -89,6 +89,7 @@ def edit_user():
             email=user.email,
             role=user.role,
             name=user.name,
+            phone_number=user.phoneNumber,
         )
         return {"ok": True, "data": user}
     except Exception as e:

@@ -30,7 +30,11 @@ export default function AppConfigured() {
         if (userRole === UserRole.UNDEFINED) {
           Auth.currentAuthenticatedUser()
             .then((user) => {
-              setUserRole(user.attributes["custom:userRole"] as UserRole);
+              if (user.attributes["custom:userRole"] !== undefined) {
+                setUserRole(user.attributes["custom:userRole"] as UserRole);
+              } else {
+                setUserRole(UserRole.UNDEFINED);
+              }
             })
             .catch(() => {
               setUserRole(UserRole.UNDEFINED);

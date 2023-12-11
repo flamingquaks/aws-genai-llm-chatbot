@@ -14,7 +14,7 @@ class CustomEncoder(json.JSONEncoder):
 
         if isinstance(obj, uuid.UUID):
             return str(obj)
-        
+
         if isinstance(obj, BaseModel):
             try:
                 return obj.model_dump_json()

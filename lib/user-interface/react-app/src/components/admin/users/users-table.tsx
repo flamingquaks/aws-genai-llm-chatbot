@@ -118,6 +118,21 @@ export default function UsersTable() {
     [appContext, userContext, getUsers, setLoading]
   );
 
+  const deleteUser = useCallback(
+    async (userData: UserData) => {
+      if (!appContext) return;
+      if (!userContext || userContext.userRole != UserRole.ADMIN) return;
+      setLoading(true);
+      const apiClient = new ApiClient(appContext);
+      const result = await apiClient.adminUsers.deleteUser(userData);
+      if (ResultValue.ok(result)) {
+        getUsers();
+      }
+      setLoading(false);
+    },
+    [appContext, userContext, getUsers, setLoading]
+  );
+
   const onDismiss = async () => {
     setAdminAction(AdminUsersManagementAction.NO_ACTION);
     setCurrentlySelectedUser(undefined);
@@ -205,7 +220,7 @@ export default function UsersTable() {
               onClick={() => {
                 if (adminAction == AdminUsersManagementAction.DELETE) {
                   if (currentlySelectedUser) {
-                    // deleteUser(currentlySelectedUser);
+                    deleteUser(currentlySelectedUser);
                     setCurrentlySelectedUser(undefined);
                     setSelectedUsers([]);
                     setIsConfirmModalVisible(false);
