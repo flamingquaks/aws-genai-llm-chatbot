@@ -43,8 +43,8 @@ export class UsersClient extends ApiClientBase {
   async updateUser(
     name: string,
     email: string,
-    phoneNumber: string,
     role: UserRole,
+    phoneNumber?: string,
     previousEmail?: string
   ): Promise<ApiResult<UserData>> {
     try {

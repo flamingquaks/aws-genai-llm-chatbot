@@ -256,6 +256,7 @@ export class RestApi extends Construct {
           "cognito-idp:AdminEnableUser",
           "cognito-idp:SignUp",
           "cognito-idp:ForgotPassword",
+          "cognito-idp:AdminResetUserPassword",
         ],
         resources: [props.userPool.userPoolArn],
         effect: iam.Effect.ALLOW,

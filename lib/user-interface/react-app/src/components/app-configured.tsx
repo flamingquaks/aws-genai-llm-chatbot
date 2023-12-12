@@ -23,17 +23,21 @@ export default function AppConfigured() {
   const [error, setError] = useState<boolean | null>(null);
   const [theme, setTheme] = useState(StorageHelper.getTheme());
   const [userRole, setUserRole] = useState(userContextDefault.userRole);
+  const [userEmail, setUserEmail] = useState(userContextDefault.userEmail);
 
-  const updateRole = useCallback(
+  const updateUserContext = useCallback(
     (event: string) => {
       if (event === "signIn" || event === "configured") {
-        if (userRole === UserRole.UNDEFINED) {
+        if (userRole === UserRole.UNDEFINED || userEmail === null) {
           Auth.currentAuthenticatedUser()
             .then((user) => {
               if (user.attributes["custom:userRole"] !== undefined) {
                 setUserRole(user.attributes["custom:userRole"] as UserRole);
               } else {
                 setUserRole(UserRole.UNDEFINED);
+              }
+              if (user.attributes.email !== undefined) {
+                setUserEmail(user.attributes.email);
               }
             })
             .catch(() => {
@@ -42,9 +46,10 @@ export default function AppConfigured() {
         }
       } else if (event === "signOut") {
         setUserRole(UserRole.UNDEFINED);
+        setUserEmail("");
       }
     },
-    [userRole, setUserRole]
+    [userRole, setUserRole, setUserEmail, userEmail]
   );
 
   useEffect(() => {
@@ -86,9 +91,9 @@ export default function AppConfigured() {
 
   useEffect(() => {
     Hub.listen("auth", (authMessage) => {
-      updateRole(authMessage.payload.event);
+      updateUserContext(authMessage.payload.event);
     });
-  }, [updateRole]);
+  }, [updateUserContext]);
 
   useEffect(() => {
     const observer = new MutationObserver((mutations) => {
@@ -160,7 +165,9 @@ export default function AppConfigured() {
 
   return (
     <AppContext.Provider value={config}>
-      <UserContext.Provider value={{ setUserRole, userRole }}>
+      <UserContext.Provider
+        value={{ setUserRole, userRole, setUserEmail, userEmail }}
+      >
         <ThemeProvider
           theme={{
             name: "default-theme",

@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useContext, useState } from "react";
 import {
   AdminUsersManagementAction,
   UserData,
   UserRole,
 } from "../../../common/types";
 import {
+  Alert,
   Button,
   Form,
   FormField,
@@ -14,6 +15,7 @@ import {
   SelectProps,
   SpaceBetween,
 } from "@cloudscape-design/components";
+import { UserContext } from "../../../common/user-context";
 
 export interface ManageUserModalProps {
   userData?: UserData;
@@ -26,6 +28,7 @@ export interface ManageUserModalProps {
 export default function ManageUserModal(
   manageUsersModalProps: ManageUserModalProps
 ) {
+  const userContext = useContext(UserContext);
   const userRoleOptions: SelectProps.Option[] = [
     { label: "Admin", value: "admin" },
     { label: "Workspaces Manager", value: "workspaces_manager" },
@@ -37,6 +40,7 @@ export default function ManageUserModal(
     const role = manageUsersModalProps.userData.role;
     return userRoleOptions.find((option) => option.value === role);
   };
+
   const [inputName, setInputName] = useState<string>(
     manageUsersModalProps.userData?.name ?? ""
   );
@@ -89,8 +93,25 @@ export default function ManageUserModal(
         }
       >
         <SpaceBetween size="s" direction="vertical">
+          {manageUsersModalProps.userData?.email == userContext.userEmail ?
+          (
+          <Alert type="warning">
+            <SpaceBetween size="xxs">
+              <strong>Warning</strong>
+              <p>
+                You are currently editing your own user. Changing details will
+                directly impact your user and may cause you to lose access if
+                you change the email to something you cannot access.
+                <br />
+                To ensure the chatbot always has at least one admin, changing
+                your own user role from "Admin" is disabled.
+              </p>
+            </SpaceBetween>
+          </Alert>
+          ) : null}
           <FormField label="Name">
             <Input
+              ariaRequired={true}
               inputMode="text"
               value={inputName}
               onChange={({ detail }) => setInputName(detail.value)}
@@ -99,6 +120,7 @@ export default function ManageUserModal(
           <FormField label="Email">
             <Input
               inputMode="email"
+              ariaRequired={true}
               value={inputEmail}
               onChange={({ detail }) => setInputEmail(detail.value)}
             />
@@ -106,6 +128,7 @@ export default function ManageUserModal(
           <FormField label="Phone Number">
             <Input
               inputMode="tel"
+              type="text"
               value={inputPhoneNumber}
               onChange={({ detail }) => setInputPhoneNumber(detail.value)}
             />
@@ -115,6 +138,7 @@ export default function ManageUserModal(
               selectedOption={getCurrentRoleSelection() ?? defaultRole}
               onChange={({ detail }) => setInputRole(detail.selectedOption)}
               options={userRoleOptions}
+              disabled={userContext.userEmail == inputEmail}
             ></Select>
           </FormField>
         </SpaceBetween>

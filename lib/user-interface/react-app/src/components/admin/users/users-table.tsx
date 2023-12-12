@@ -3,6 +3,8 @@ import {
   Button,
   ButtonDropdown,
   ButtonDropdownProps,
+  Flashbar,
+  FlashbarProps,
   Header,
   Modal,
   SpaceBetween,
@@ -22,6 +24,7 @@ import { AppContext } from "../../../common/app-context";
 import { UserContext } from "../../../common/user-context";
 import { getUserTableColumns } from "./users-table-columns";
 import ManageUserModal from "./manage-user-modal";
+import { UsersTableTextHelper } from "./users-table-text-helper";
 
 export default function UsersTable() {
   const navigate = useNavigate();
@@ -38,20 +41,39 @@ export default function UsersTable() {
     AdminUsersManagementAction.NO_ACTION
   );
   const [userEnabled, setUserEnabled] = useState(true);
+  const [flashbarItems, setFlashbarItems] = useState<
+    FlashbarProps.MessageDefinition[]
+  >([]);
 
   const getUsers = useCallback(async () => {
     if (!appContext) return;
     if (!userContext || userContext.userRole != UserRole.ADMIN) {
       navigate("/");
     }
-
+    setCurrentlySelectedUser(undefined);
+    setSelectedUsers([]);
     const apiClient = new ApiClient(appContext);
     const result = await apiClient.adminUsers.getUsers();
     if (ResultValue.ok(result)) {
       setUsers([...result.data]);
     }
     setLoading(false);
-  }, [appContext, userContext, setLoading, navigate]);
+  }, [
+    appContext,
+    userContext,
+    setLoading,
+    navigate,
+    setCurrentlySelectedUser,
+    setSelectedUsers,
+  ]);
+
+  const onDismissFlashbar = (id: string) => {
+    setFlashbarItems(
+      flashbarItems.filter((item) => {
+        return item.id != id;
+      })
+    )
+  }
 
   const createUser = useCallback(
     async (userData: UserData) => {
@@ -59,12 +81,18 @@ export default function UsersTable() {
       if (!userContext || userContext.userRole != UserRole.ADMIN) return;
       const apiClient = new ApiClient(appContext);
       const result = await apiClient.adminUsers.createUser(userData);
-      if (ResultValue.ok(result)) {
-        getUsers();
-      }
+      setFlashbarItems([
+        ...flashbarItems,
+        UsersTableTextHelper.getFlashbar(
+          AdminUsersManagementAction.CREATE,
+          ResultValue.ok(result),
+          onDismissFlashbar
+        ),
+      ]);
+      getUsers();
       setLoading(false);
     },
-    [getUsers, appContext, userContext]
+    [getUsers, appContext, userContext, setFlashbarItems, flashbarItems, onDismissFlashbar]
   );
 
   const updateUser = useCallback(
@@ -75,18 +103,60 @@ export default function UsersTable() {
       const result = await apiClient.adminUsers.updateUser(
         userData.name,
         userData.email,
-        userData.phoneNumber ?? "",
         userData.role,
+        userData.phoneNumber,
         userData.previousEmail
       );
-      if (ResultValue.ok(result)) {
-        getUsers();
-      }
+      setFlashbarItems([
+        ...flashbarItems,
+        UsersTableTextHelper.getFlashbar(
+          AdminUsersManagementAction.EDIT,
+          ResultValue.ok(result),
+          onDismissFlashbar
+        ),
+      ]);
+      getUsers();
       setCurrentlySelectedUser(undefined);
       setSelectedUsers([]);
       setLoading(false);
     },
-    [getUsers, appContext, userContext, setLoading]
+    [
+      getUsers,
+      appContext,
+      userContext,
+      setLoading,
+      setFlashbarItems,
+      flashbarItems,
+      onDismissFlashbar
+    ]
+  );
+
+  const resetUserPassword = useCallback(
+    async (userData: UserData) => {
+      if (!appContext) return;
+      if (!userContext || userContext.userRole != UserRole.ADMIN) return;
+      const apiClient = new ApiClient(appContext);
+      const result = await apiClient.adminUsers.resetUserPassword(userData);
+      setFlashbarItems([
+        ...flashbarItems,
+        UsersTableTextHelper.getFlashbar(
+          AdminUsersManagementAction.RESET_PASSWORD,
+          ResultValue.ok(result),
+          onDismissFlashbar
+        ),
+      ]);
+      getUsers();
+      setLoading(false);
+    },
+    [
+      getUsers,
+      setLoading,
+      userContext,
+      appContext,
+      setFlashbarItems,
+      flashbarItems,
+      onDismissFlashbar
+    ]
   );
 
   const disableUser = useCallback(
@@ -95,12 +165,26 @@ export default function UsersTable() {
       if (!userContext || userContext.userRole != UserRole.ADMIN) return;
       const apiClient = new ApiClient(appContext);
       const result = await apiClient.adminUsers.disableUser(userData);
-      if (ResultValue.ok(result)) {
-        getUsers();
-      }
+      setFlashbarItems([
+        ...flashbarItems,
+        UsersTableTextHelper.getFlashbar(
+          AdminUsersManagementAction.DISABLE,
+          ResultValue.ok(result),
+          onDismissFlashbar
+        ),
+      ]);
+      getUsers();
       setLoading(false);
     },
-    [appContext, userContext, getUsers, setLoading]
+    [
+      appContext,
+      userContext,
+      getUsers,
+      setLoading,
+      setFlashbarItems,
+      flashbarItems,
+      onDismissFlashbar
+    ]
   );
 
   const enableUser = useCallback(
@@ -110,12 +194,26 @@ export default function UsersTable() {
       setLoading(true);
       const apiClient = new ApiClient(appContext);
       const result = await apiClient.adminUsers.enableUser(userData);
-      if (ResultValue.ok(result)) {
-        getUsers();
-      }
+      setFlashbarItems([
+        ...flashbarItems,
+        UsersTableTextHelper.getFlashbar(
+          AdminUsersManagementAction.ENABLE,
+          ResultValue.ok(result),
+          onDismissFlashbar
+        ),
+      ]);
+      getUsers();
       setLoading(false);
     },
-    [appContext, userContext, getUsers, setLoading]
+    [
+      appContext,
+      userContext,
+      getUsers,
+      setLoading,
+      setFlashbarItems,
+      flashbarItems,
+      onDismissFlashbar
+    ]
   );
 
   const deleteUser = useCallback(
@@ -125,12 +223,26 @@ export default function UsersTable() {
       setLoading(true);
       const apiClient = new ApiClient(appContext);
       const result = await apiClient.adminUsers.deleteUser(userData);
-      if (ResultValue.ok(result)) {
-        getUsers();
-      }
+      setFlashbarItems([
+        ...flashbarItems,
+        UsersTableTextHelper.getFlashbar(
+          AdminUsersManagementAction.DELETE,
+          ResultValue.ok(result),
+          onDismissFlashbar
+        ),
+      ]);
+      getUsers();
       setLoading(false);
     },
-    [appContext, userContext, getUsers, setLoading]
+    [
+      appContext,
+      userContext,
+      getUsers,
+      setLoading,
+      setFlashbarItems,
+      flashbarItems,
+      onDismissFlashbar
+    ]
   );
 
   const onDismiss = async () => {
@@ -142,7 +254,6 @@ export default function UsersTable() {
   };
 
   const onSave = async (userData: UserData) => {
-    console.debug(adminAction);
     setIsManageModalVisible(false);
     setLoading(true);
     if (adminAction == AdminUsersManagementAction.CREATE) {
@@ -161,12 +272,12 @@ export default function UsersTable() {
     await getUsers();
   };
 
+
   const handleUserActions = (
     event: CustomEvent<ButtonDropdownProps.ItemClickDetails>
   ) => {
     const detail = event.detail;
     if (detail.id == "edit" && currentlySelectedUser) {
-      console.debug(AdminUsersManagementAction);
       setAdminAction(AdminUsersManagementAction.EDIT);
       setIsManageModalVisible(true);
     } else if (detail.id == "disable" && currentlySelectedUser) {
@@ -179,6 +290,9 @@ export default function UsersTable() {
       setSelectedUsers([]);
     } else if (detail.id == "delete" && currentlySelectedUser) {
       setAdminAction(AdminUsersManagementAction.DELETE);
+      setIsConfirmModalVisible(true);
+    } else if (detail.id == "reset-password" && currentlySelectedUser) {
+      setAdminAction(AdminUsersManagementAction.RESET_PASSWORD);
       setIsConfirmModalVisible(true);
     } else {
       setAdminAction(AdminUsersManagementAction.NO_ACTION);
@@ -196,8 +310,9 @@ export default function UsersTable() {
     detail: TableProps.SelectionChangeDetail<UserData>
   ) => {
     setSelectedUsers(detail.selectedItems);
-    setCurrentlySelectedUser(detail.selectedItems[0]);
-    if (detail.selectedItems[0].enabled) {
+    const selectedUser = detail.selectedItems[0];
+    setCurrentlySelectedUser(selectedUser);
+    if (selectedUser.enabled) {
       setUserEnabled(true);
     } else {
       setUserEnabled(false);
@@ -207,52 +322,8 @@ export default function UsersTable() {
   const columnDefinitions = getUserTableColumns();
 
   return (
-    <>
-      <Modal
-        visible={isConfirmModalVisible}
-        onDismiss={onDismiss}
-        header={<Header>{getConfirmHeader(adminAction)}</Header>}
-        footer={
-          <SpaceBetween size="s" direction="horizontal" alignItems="end">
-            <Button onClick={onDismiss}>Cancel</Button>
-            <Button
-              variant="primary"
-              onClick={() => {
-                if (adminAction == AdminUsersManagementAction.DELETE) {
-                  if (currentlySelectedUser) {
-                    deleteUser(currentlySelectedUser);
-                    setCurrentlySelectedUser(undefined);
-                    setSelectedUsers([]);
-                    setIsConfirmModalVisible(false);
-                    setAdminAction(AdminUsersManagementAction.NO_ACTION);
-                    console.debug("DELETE USER CLICKED");
-                  }
-                } else if (adminAction == AdminUsersManagementAction.DISABLE) {
-                  if (currentlySelectedUser) {
-                    disableUser(currentlySelectedUser);
-                    setCurrentlySelectedUser(undefined);
-                    setSelectedUsers([]);
-                    setIsConfirmModalVisible(false);
-                    setAdminAction(AdminUsersManagementAction.NO_ACTION);
-                  }
-                }
-              }}
-            >
-              {getConfirmActionButton(adminAction)}
-            </Button>
-          </SpaceBetween>
-        }
-      >
-        <Alert type="warning">{getConfirmDescription(adminAction)}</Alert>
-      </Modal>
-      <ManageUserModal
-        key={currentlySelectedUser?.email ? currentlySelectedUser?.email : null}
-        onDismiss={onDismiss}
-        visible={isManageModalVisible}
-        userData={currentlySelectedUser}
-        onSave={onSave}
-        adminAction={adminAction}
-      ></ManageUserModal>
+    <SpaceBetween direction="vertical" size="s">
+      <Flashbar items={flashbarItems} />
       <Table
         loading={loading}
         columnDefinitions={columnDefinitions}
@@ -272,6 +343,7 @@ export default function UsersTable() {
                 </Button>
                 <ButtonDropdown
                   onItemClick={(details) => handleUserActions(details)}
+                  disabled={currentlySelectedUser == undefined}
                   items={[
                     {
                       id: "edit",
@@ -283,31 +355,45 @@ export default function UsersTable() {
                       id: "disable",
                       text: "Disable User",
                       iconName: "close",
-                      disabled: selectedUsers.length != 1 || !userEnabled,
-                      description:
-                        selectedUsers.length != 1 || !userEnabled
-                          ? "User is already disabled"
-                          : "Click to disable the selected user",
+                      disabled:
+                        selectedUsers.length != 1 ||
+                        !userEnabled ||
+                        currentlySelectedUser?.email == userContext.userEmail,
+                      disabledReason: currentlySelectedUser
+                        ? UsersTableTextHelper.getDisableActionDisabledDescription(
+                          currentlySelectedUser,
+                          userContext.userEmail
+                        )
+                        : "",
                     },
                     {
                       id: "enable",
                       text: "Enable User",
                       iconName: "check",
                       disabled: selectedUsers.length != 1 || userEnabled,
-                      description:
-                        selectedUsers.length != 1 || userEnabled
-                          ? "User is already enabled"
-                          : "Click to enable the selected user",
+                      disabledReason: currentlySelectedUser
+                        ? UsersTableTextHelper.getEnableActionDisabledDescription(
+                          currentlySelectedUser,
+                          userContext.userEmail ?? ""
+                        )
+                        : "",
                     },
                     {
                       id: "delete",
                       text: "Delete User",
                       iconName: "delete-marker",
                       disabled: selectedUsers.length != 1 || userEnabled,
-                      description:
-                        selectedUsers.length != 1 || userEnabled
-                          ? "Selected user is still enabled. Disable the user first to enable user deletion"
-                          : "Click to delete the selected user. This deletes all data associate with the user as well.",
+                      disabledReason: currentlySelectedUser
+                        ? UsersTableTextHelper.getDeleteActionDisabledDescription(
+                          currentlySelectedUser,
+                          userContext.userEmail ?? ""
+                        )
+                        : "",
+                    },
+                    {
+                      id: "reset-password",
+                      text: "Reset Password",
+                      iconName: "key",
                     },
                   ]}
                 >
@@ -318,39 +404,64 @@ export default function UsersTable() {
           />
         }
       />
-    </>
+      <Modal
+        visible={isConfirmModalVisible}
+        onDismiss={onDismiss}
+        header={
+          <Header>{UsersTableTextHelper.getConfirmHeader(adminAction)}</Header>
+        }
+        footer={
+          <SpaceBetween size="s" direction="horizontal" alignItems="end">
+            <Button onClick={onDismiss}>Cancel</Button>
+            <Button
+              variant="primary"
+              onClick={() => {
+                if (adminAction == AdminUsersManagementAction.DELETE) {
+                  if (currentlySelectedUser) {
+                    deleteUser(currentlySelectedUser);
+                    setCurrentlySelectedUser(undefined);
+                    setSelectedUsers([]);
+                    setIsConfirmModalVisible(false);
+                    setAdminAction(AdminUsersManagementAction.NO_ACTION);
+                  }
+                } else if (adminAction == AdminUsersManagementAction.DISABLE) {
+                  if (currentlySelectedUser) {
+                    disableUser(currentlySelectedUser);
+                    setCurrentlySelectedUser(undefined);
+                    setSelectedUsers([]);
+                    setIsConfirmModalVisible(false);
+                    setAdminAction(AdminUsersManagementAction.NO_ACTION);
+                  }
+                } else if (
+                  adminAction == AdminUsersManagementAction.RESET_PASSWORD
+                ) {
+                  if (currentlySelectedUser) {
+                    resetUserPassword(currentlySelectedUser);
+                    setCurrentlySelectedUser(undefined);
+                    setSelectedUsers([]);
+                    setIsConfirmModalVisible(false);
+                    setAdminAction(AdminUsersManagementAction.NO_ACTION);
+                  }
+                }
+              }}
+            >
+              {UsersTableTextHelper.getConfirmActionButton(adminAction)}
+            </Button>
+          </SpaceBetween>
+        }
+      >
+        <Alert type="warning">
+          {UsersTableTextHelper.getConfirmDescription(adminAction)}
+        </Alert>
+      </Modal>
+      <ManageUserModal
+        onDismiss={onDismiss}
+        visible={isManageModalVisible}
+        userData={currentlySelectedUser}
+        onSave={onSave}
+        key={currentlySelectedUser + "ManageUser"}
+        adminAction={adminAction}
+      />
+    </SpaceBetween>
   );
 }
-
-const getConfirmHeader = (action: AdminUsersManagementAction): string => {
-  switch (action) {
-    case AdminUsersManagementAction.DISABLE:
-      return "Disable User?";
-    case AdminUsersManagementAction.DELETE:
-      return "Delete User?";
-    default:
-      return "Confirm?";
-  }
-};
-
-const getConfirmDescription = (action: AdminUsersManagementAction): string => {
-  switch (action) {
-    case AdminUsersManagementAction.DISABLE:
-      return "Are you sure you want to disable this user? This user will no longer be able to login. The user can be enabled later and any user data will remain stored.";
-    case AdminUsersManagementAction.DELETE:
-      return "Are you sure you want to delete this user? This will delete all data associated with the user as well.";
-    default:
-      return "Are you sure?";
-  }
-};
-
-const getConfirmActionButton = (action: AdminUsersManagementAction): string => {
-  switch (action) {
-    case AdminUsersManagementAction.DISABLE:
-      return "Disable User";
-    case AdminUsersManagementAction.DELETE:
-      return "Delete User";
-    default:
-      return "Confirm";
-  }
-};
