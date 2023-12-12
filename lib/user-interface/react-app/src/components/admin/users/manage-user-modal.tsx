@@ -93,21 +93,20 @@ export default function ManageUserModal(
         }
       >
         <SpaceBetween size="s" direction="vertical">
-          {manageUsersModalProps.userData?.email == userContext.userEmail ?
-          (
-          <Alert type="warning">
-            <SpaceBetween size="xxs">
-              <strong>Warning</strong>
-              <p>
-                You are currently editing your own user. Changing details will
-                directly impact your user and may cause you to lose access if
-                you change the email to something you cannot access.
-                <br />
-                To ensure the chatbot always has at least one admin, changing
-                your own user role from "Admin" is disabled.
-              </p>
-            </SpaceBetween>
-          </Alert>
+          {manageUsersModalProps.userData?.email == userContext.userEmail ? (
+            <Alert type="warning">
+              <SpaceBetween size="xxs">
+                <strong>Warning</strong>
+                <p>
+                  You are currently editing your own user. Changing details will
+                  directly impact your user and may cause you to lose access if
+                  you change the email to something you cannot access.
+                  <br />
+                  To ensure the chatbot always has at least one admin, changing
+                  your own user role from "Admin" is disabled.
+                </p>
+              </SpaceBetween>
+            </Alert>
           ) : null}
           <FormField label="Name">
             <Input

@@ -67,13 +67,13 @@ export default function UsersTable() {
     setSelectedUsers,
   ]);
 
-  const onDismissFlashbar = (id: string) => {
-    setFlashbarItems(
-      flashbarItems.filter((item) => {
-        return item.id != id;
-      })
-    )
-  }
+  const onDismissFlashbar = useCallback(
+    async (id: string) => {
+      setFlashbarItems(
+        flashbarItems.filter((item) => {
+          return item.id != id;
+        })
+  )},[setFlashbarItems, flashbarItems])
 
   const createUser = useCallback(
     async (userData: UserData) => {
@@ -92,7 +92,14 @@ export default function UsersTable() {
       getUsers();
       setLoading(false);
     },
-    [getUsers, appContext, userContext, setFlashbarItems, flashbarItems, onDismissFlashbar]
+    [
+      getUsers,
+      appContext,
+      userContext,
+      setFlashbarItems,
+      flashbarItems,
+      onDismissFlashbar,
+    ]
   );
 
   const updateUser = useCallback(
@@ -127,7 +134,7 @@ export default function UsersTable() {
       setLoading,
       setFlashbarItems,
       flashbarItems,
-      onDismissFlashbar
+      onDismissFlashbar,
     ]
   );
 
@@ -155,7 +162,7 @@ export default function UsersTable() {
       appContext,
       setFlashbarItems,
       flashbarItems,
-      onDismissFlashbar
+      onDismissFlashbar,
     ]
   );
 
@@ -183,7 +190,7 @@ export default function UsersTable() {
       setLoading,
       setFlashbarItems,
       flashbarItems,
-      onDismissFlashbar
+      onDismissFlashbar,
     ]
   );
 
@@ -212,7 +219,7 @@ export default function UsersTable() {
       setLoading,
       setFlashbarItems,
       flashbarItems,
-      onDismissFlashbar
+      onDismissFlashbar,
     ]
   );
 
@@ -241,7 +248,7 @@ export default function UsersTable() {
       setLoading,
       setFlashbarItems,
       flashbarItems,
-      onDismissFlashbar
+      onDismissFlashbar,
     ]
   );
 
@@ -271,7 +278,6 @@ export default function UsersTable() {
     setLoading(true);
     await getUsers();
   };
-
 
   const handleUserActions = (
     event: CustomEvent<ButtonDropdownProps.ItemClickDetails>
@@ -361,9 +367,9 @@ export default function UsersTable() {
                         currentlySelectedUser?.email == userContext.userEmail,
                       disabledReason: currentlySelectedUser
                         ? UsersTableTextHelper.getDisableActionDisabledDescription(
-                          currentlySelectedUser,
-                          userContext.userEmail
-                        )
+                            currentlySelectedUser,
+                            userContext.userEmail
+                          )
                         : "",
                     },
                     {
@@ -373,9 +379,9 @@ export default function UsersTable() {
                       disabled: selectedUsers.length != 1 || userEnabled,
                       disabledReason: currentlySelectedUser
                         ? UsersTableTextHelper.getEnableActionDisabledDescription(
-                          currentlySelectedUser,
-                          userContext.userEmail ?? ""
-                        )
+                            currentlySelectedUser,
+                            userContext.userEmail ?? ""
+                          )
                         : "",
                     },
                     {
@@ -385,9 +391,9 @@ export default function UsersTable() {
                       disabled: selectedUsers.length != 1 || userEnabled,
                       disabledReason: currentlySelectedUser
                         ? UsersTableTextHelper.getDeleteActionDisabledDescription(
-                          currentlySelectedUser,
-                          userContext.userEmail ?? ""
-                        )
+                            currentlySelectedUser,
+                            userContext.userEmail ?? ""
+                          )
                         : "",
                     },
                     {
