@@ -23,7 +23,7 @@ def main():
     processed_urls = data["processed_urls"]
     follow_links = data["follow_links"]
     limit = data["limit"]
-    content_types = data["content_types"]
+    content_types = data.get("content_types", ["text/html"]) # If no content type, default to text/html
 
     return genai_core.websites.crawler.crawl_urls(
         workspace=workspace,
